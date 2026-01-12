@@ -1,102 +1,74 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: localhost
--- Generation Time: Oct 27, 2025 at 03:04 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- ==========================================================
+-- 1. KHỞI TẠO DATABASE
+-- ==========================================================
+CREATE DATABASE IF NOT EXISTS `student_management` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `student_management`;
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `attendance`, `grades`, `student_info`, `courses`, `classes`, `users`;
+SET FOREIGN_KEY_CHECKS = 1;
 
+-- Bảng tài khoản (Username là Email - Duy nhất toàn hệ thống)
+CREATE TABLE `users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `role` enum('admin','teacher','student') DEFAULT 'student',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
+-- Bảng lớp học
+CREATE TABLE `classes` (
+  `class_id` int NOT NULL AUTO_INCREMENT,
+  `class_name` varchar(100) NOT NULL,
+  `teacher_name` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`class_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Database: `student_management`
---
+-- Bảng môn học
+CREATE TABLE `courses` (
+  `course_id` int NOT NULL AUTO_INCREMENT,
+  `class_id` int NOT NULL,
+  `course_name` varchar(255) NOT NULL,
+  PRIMARY KEY (`course_id`),
+  FOREIGN KEY (`class_id`) REFERENCES `classes` (`class_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `student_info`
---
-
+-- Bảng thông tin sinh viên
+-- RÀNG BUỘC QUAN TRỌNG: UNIQUE (`email`, `class_id`) 
+-- Giúp 1 email học được nhiều lớp, nhưng trong 1 lớp không được lặp lại.
 CREATE TABLE `student_info` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int DEFAULT NULL,
+  `class_id` int DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
-  `phone` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_email_per_class` (`email`, `class_id`),
+  FOREIGN KEY (`class_id`) REFERENCES `classes` (`class_id`) ON DELETE SET NULL,
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Dumping data for table `student_info`
---
+-- Bảng điểm
+CREATE TABLE `grades` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `course_id` int NOT NULL,
+  `score` decimal(4,2) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_grade` (`student_id`, `course_id`),
+  FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`student_id`) REFERENCES `student_info` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `student_info` (`id`, `name`, `email`, `phone`) VALUES
-(13, 'AHMED SAHAL ADAM', 'ahmedsahal@gmail.com', '634294218'),
-(14, 'ajama', 'ahmedsahal@gmail.com', '0634916040'),
-(15, 'caasha xusseen', 'caasha@gmail.com', '0634189019'),
-(16, 'Mohamed Ali ', 'Mohammed@gmail.com', '06345552890'),
-(17, 'foosiya cali adan', 'foosiya@gmail.com', '777777');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `users`
---
-
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL,
-  `username` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`id`, `username`, `password`) VALUES
-(1, 'ahmedsahal', '1234567890');
-
---
--- Indexes for dumped tables
---
-
---
--- Indexes for table `student_info`
---
-ALTER TABLE `student_info`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `student_info`
---
-ALTER TABLE `student_info`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+-- Bảng điểm danh
+CREATE TABLE `attendance` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `date` date NOT NULL,
+  `status` enum('present','absent') DEFAULT 'present',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_att` (`student_id`, `date`),
+  FOREIGN KEY (`student_id`) REFERENCES `student_info` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

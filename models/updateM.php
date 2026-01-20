@@ -1,4 +1,4 @@
-<!-- Modal -->
+<!-- Modal
  <form action="../public/update.php" method="POST">
 <div
     class="modal fade"
@@ -23,7 +23,7 @@
             </div>
             <div class="modal-body">
                 <!-- <div class="container-fluid">Add rows here</div> -->
-                 <div class="col-md-12 mb-2">
+                 <!-- <div class="col-md-12 mb-2">
                     <label for="" class="form-label">Name</label>
                     <input type="hidden" name="id" id="id" value="<?php echo $row['id']; ?>">
                     <input type="text" class="form-control" id="" name="name" value="<?php echo $row['name']; ?>" required />
@@ -56,9 +56,9 @@
         </div>
     </div>
 </div>
-</form>
+</form>  -->
 
-<script>
+<!-- <script>
     var modalId = document.getElementById('modalId');
 
     modalId.addEventListener('show.bs.modal', function (event) {
@@ -68,5 +68,56 @@
           let recipient = button.getAttribute('data-bs-whatever');
 
         // Use above variables to manipulate the DOM
-    });
+    }); -->
 </script>
+
+// thêm mới GHI LOG KHI CẬP NHẬT SINH VIÊN
+
+<?php
+session_start();
+require_once __DIR__ . '/../Database/db.php';
+require_once __DIR__ . '/../includes/audit_log.php';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: ../public/home.php");
+    exit;
+}
+
+$id = $_POST['id'];
+
+// OLD
+$old = $conn->query(
+    "SELECT * FROM students WHERE id = $id"
+)->fetch_assoc();
+
+// NEW DATA
+$name  = $_POST['name'];
+$email = $_POST['email'];
+$phone = $_POST['phone'];
+
+$stmt = $conn->prepare(
+    "UPDATE students SET name=?, email=?, phone=? WHERE id=?"
+);
+$stmt->bind_param("sssi", $name, $email, $phone, $id);
+$stmt->execute();
+
+// NEW
+$new = $conn->query(
+    "SELECT * FROM students WHERE id = $id"
+)->fetch_assoc();
+
+// AUDIT LOG
+writeAuditLog(
+    $conn,
+    $_SESSION['user_id'],
+    $_SESSION['username'],
+    'UPDATE',
+    'students',
+    $id,
+    json_encode($old),
+    json_encode($new)
+);
+
+header("Location: ../public/home.php");
+exit;
+?>

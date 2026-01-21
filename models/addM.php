@@ -1,6 +1,6 @@
-<form action="../public/insert.php" method="post">
+<!-- <form action="../public/insert.php" method="post">
 <!-- Modal -->
-<div
+<!-- <div
     class="modal fade"
     id="mymodal"
     tabindex="-1"
@@ -23,7 +23,7 @@
             </div>
             <div class="modal-body">
                 <!-- <div class="container-fluid">Add rows here</div> -->
-                 <div class="col-md-12 mb-2">
+                 <!-- <div class="col-md-12 mb-2">
                     <label for="" class="form-label">Full Name</label>
                     <input type="text" class="form-control" id="" name="name" placeholder="Enter the Full name" value="" required />
                  </div>
@@ -37,10 +37,10 @@
                     <label for="" class="form-label">Phone</label>
                     <input type="text" class="form-control" id="" name="phone" placeholder="Enter the phone" value="" required />
                  </div>
+                  -->
                  
                  
-                 
-            </div>
+            <!-- </div>
             <div class="modal-footer">
                 <button
                     type="button"
@@ -54,17 +54,54 @@
             </div>
         </div>
     </div>
-</div>
+</div> -->
 
 <script>
-    var modalId = document.getElementById('modalId');
+    // var modalId = document.getElementById('modalId');
 
-    modalId.addEventListener('show.bs.modal', function (event) {
-          // Button that triggered the modal
-          let button = event.relatedTarget;
-          // Extract info from data-bs-* attributes
-          let recipient = button.getAttribute('data-bs-whatever');
+    // modalId.addEventListener('show.bs.modal', function (event) {
+    //       // Button that triggered the modal
+    //       let button = event.relatedTarget;
+    //       // Extract info from data-bs-* attributes
+    //       let recipient = button.getAttribute('data-bs-whatever');
 
-        // Use above variables to manipulate the DOM
-    });
+    //     // Use above variables to manipulate the DOM
+    // });
 </script>
+
+
+// thêm mới GHI LOG KHI THÊM SINH VIÊN
+<?php
+session_start();
+require_once __DIR__ . '/../Database/db.php';
+require_once __DIR__ . '/../includes/audit_log.php';
+
+$first_name  = $_POST['first_name'];
+$last_name   = $_POST['last_name'];
+$email       = $_POST['email'];
+$phone       = $_POST['phone'];
+$faculty_id  = $_POST['faculty_id'];
+
+$stmt = $conn->prepare("
+    INSERT INTO students (first_name, last_name, email, phone, faculty_id)
+    VALUES (?, ?, ?, ?, ?)
+");
+$stmt->bind_param("ssssi", $first_name, $last_name, $email, $phone, $faculty_id);
+$stmt->execute();
+
+$student_id = $conn->insert_id;
+
+/* AUDIT */
+writeAuditLog(
+    $conn,
+    $_SESSION['user_id'],
+    $_SESSION['username'],
+    'INSERT',
+    'students',
+    $student_id,
+    null,
+    $_POST
+);
+
+header("Location: ../public/home.php");
+exit;

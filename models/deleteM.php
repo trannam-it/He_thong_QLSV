@@ -1,4 +1,4 @@
-<form action="../public/delete.php" method="POST">
+<!-- <form action="../public/delete.php" method="POST">
 <div
     class="modal fade"
     id="delete<?= $row['id'] ?>"
@@ -6,8 +6,8 @@
     role="dialog"
     aria-labelledby="modalTitleId"
     aria-hidden="true"
->
-    <div class="modal-dialog" role="document">
+> -->
+    <!-- <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalTitleId">
@@ -37,17 +37,52 @@
         </div>
     </div>
 </div>
-</form>
+</form> -->
 
 <script>
-    var modalId = document.getElementById('modalId');
+    // var modalId = document.getElementById('modalId');
 
-    modalId.addEventListener('show.bs.modal', function (event) {
-          // Button that triggered the modal
-          let button = event.relatedTarget;
-          // Extract info from data-bs-* attributes
-          let recipient = button.getAttribute('data-bs-whatever');
+    // modalId.addEventListener('show.bs.modal', function (event) {
+    //       // Button that triggered the modal
+    //       let button = event.relatedTarget;
+    //       // Extract info from data-bs-* attributes
+    //       let recipient = button.getAttribute('data-bs-whatever');
 
-        // Use above variables to manipulate the DOM
-    });
+    //     // Use above variables to manipulate the DOM
+    // });
 </script>
+
+
+//  thêm mới GHI LOG KHI XÓA SINH VIÊN
+<?php
+session_start();
+require_once __DIR__ . '/../Database/db.php';
+require_once __DIR__ . '/../includes/audit_log.php';
+
+$id = (int)$_POST['id'];
+
+/* OLD DATA */
+$stmt = $conn->prepare("SELECT * FROM students WHERE student_id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$old = $stmt->get_result()->fetch_assoc();
+
+/* DELETE */
+$stmt = $conn->prepare("DELETE FROM students WHERE student_id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+
+/* AUDIT LOG */
+writeAuditLog(
+    $conn,
+    $_SESSION['user_id'],
+    $_SESSION['username'],
+    'DELETE',
+    'students',
+    $id,
+    $old,
+    null
+);
+
+header("Location: ../public/home.php");
+exit;

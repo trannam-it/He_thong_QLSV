@@ -9,6 +9,14 @@
     <link rel="stylesheet" href="../public/asset/css/style.css">
     <link rel="shortcut icon" href="../public/asset/images/password.png" type="image/x-icon">
 </head>
+<style>body {
+    padding-top : 100px;
+    display: flex;
+    align-items: center;     /* giữa dọc */
+    justify-content: center; /* giữa ngang */    /* hoặc gradient */
+}
+
+    </style>
 <body>
 
     <div class="login-container">
@@ -46,7 +54,7 @@
             </div>
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
-        <p class="text-muted"> Forget Your Password? <a href="../public/reset_request.php">Reset Password</a></p>
+       
     </div>
     
 </body>

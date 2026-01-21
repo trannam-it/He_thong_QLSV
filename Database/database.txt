@@ -1,0 +1,253 @@
+-- Script Tạo cơ sở dữ liệu
+
+
+-- TẠO DATABASE
+
+CREATE DATABASE student_management
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE student_management;
+
+
+-- 1. PHÂN QUYỀN – NGƯỜI DÙNG (RBAC)
+
+-- Tạo bảng NGƯỜI DÙNG - USERS
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  is_active TINYINT DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  ADD COLUMN last_login DATETIME NULL AFTER created_at,
+  ADD COLUMN failed_attempts INT DEFAULT 0 AFTER last_login,
+  ADD COLUMN locked_until DATETIME NULL AFTER failed_attempts;
+) ENGINE=InnoDB;
+
+-- Tạo bảng VAI TRÒ - ROLES
+CREATE TABLE roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(50) UNIQUE NOT NULL,
+  name VARCHAR(100) NOT NULL
+) ENGINE=InnoDB;
+
+INSERT INTO roles (code, name) VALUES
+('super_admin','Admin quản trị hệ thống'),
+('content_admin','Admin quản trị nội dung'),
+('teacher','Giảng viên'),
+('student','Sinh viên');
+
+-- Tạo bảng QUYỀN HẠN -  PERMISSIONS
+CREATE TABLE permissions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(100) UNIQUE NOT NULL,
+  description TEXT
+) ENGINE=InnoDB;
+
+INSERT INTO permissions (code, description) VALUES
+('manage_users','Quản lý người dùng'),
+('manage_roles','Quản lý vai trò'),
+('view_audit_logs','Xem nhật ký hệ thống'),
+('manage_students','Quản lý sinh viên'),
+('manage_lecturers','Quản lý giảng viên'),
+('manage_faculties','Quản lý khoa'),
+('manage_subjects','Quản lý môn học'),
+('manage_classes','Quản lý lớp học'),
+('manage_grades','Quản lý điểm'),
+('view_reports','Xem báo cáo');
+
+-- Tạo bảng ROLE_PERMISSIONS
+CREATE TABLE role_permissions (
+  role_id INT,
+  permission_id INT,
+  PRIMARY KEY (role_id, permission_id),
+  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+  FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Super Admin có toàn quyền
+INSERT INTO role_permissions
+SELECT 1, id FROM permissions;
+
+-- Content Admin
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 2, id FROM permissions
+WHERE code IN (
+ 'manage_students','manage_lecturers','manage_faculties',
+ 'manage_subjects','manage_classes','manage_grades','view_reports'
+);
+
+-- Tạo bảng USER_ROLES
+CREATE TABLE user_roles (
+  user_id INT,
+  role_id INT,
+  PRIMARY KEY (user_id, role_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Tạo bảng KHOA – FACULTIES
+CREATE TABLE faculties (
+  faculty_id INT AUTO_INCREMENT PRIMARY KEY,   -- khóa chính, tự tăng
+  faculty_code VARCHAR(20) NOT NULL UNIQUE,         -- mã khoa, duy nhất
+  faculty_name VARCHAR(100) NOT NULL UNIQUE,   -- tên khoa, duy nhất
+  description TEXT                             -- mô tả thêm
+) ENGINE=InnoDB;
+
+-- Tạo bảng LỚP CƠ SỞ – BASE_CLASSES
+CREATE TABLE base_classes (
+  base_class_id INT AUTO_INCREMENT PRIMARY KEY,        -- Mã định danh lớp cơ sở
+  base_class_code VARCHAR(20) NOT NULL UNIQUE,         -- Mã lớp cơ sở (ví dụ: CNTT2022A)
+  base_class_name VARCHAR(100) NOT NULL,               -- Tên lớp cơ sở (ví dụ: Công nghệ thông tin K22A)
+  faculty_id INT NOT NULL,                             -- Lớp cơ sở thuộc khoa nào
+  lecturer_id INT NOT NULL,                            -- Giảng viên chủ nhiệm lớp cơ sở
+  start_year YEAR NOT NULL,                            -- Năm bắt đầu (ví dụ: 2022)
+  end_year YEAR NOT NULL,                              -- Năm kết thúc (ví dụ: 2026)
+  FOREIGN KEY (faculty_id) REFERENCES faculties(faculty_id),
+  FOREIGN KEY (lecturer_id) REFERENCES lecturers(lecturer_id)
+) ENGINE=InnoDB;
+
+-- Bảng địa chỉ khoa
+CREATE TABLE faculty_addresses (
+  address_id INT AUTO_INCREMENT PRIMARY KEY,   -- khóa chính, tự tăng
+  faculty_code VARCHAR(20) NOT NULL,           -- mã khoa, liên kết với bảng faculties
+  address VARCHAR(255) NOT NULL,               -- địa chỉ khoa
+  email VARCHAR(100),                          -- email liên hệ (nếu có)
+  FOREIGN KEY (faculty_code) REFERENCES faculties(faculty_code)
+) ENGINE=InnoDB;
+
+-- Tạo bảng SINH VIÊN – STUDENTS
+CREATE TABLE students (
+  student_id INT AUTO_INCREMENT PRIMARY KEY,
+  ADD COLUMN user_id INT UNIQUE,
+  student_code VARCHAR(10) NOT NULL UNIQUE,
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  gender ENUM('Male','Female','Other') NOT NULL,
+  birth_date DATE NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  phone VARCHAR(20),
+  faculty_id INT NOT NULL,
+  status ENUM('Studying','Graduated','Suspended','Dropped') DEFAULT 'Studying',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (faculty_id) REFERENCES faculties(faculty_id)
+  ADD FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+) ENGINE=InnoDB;
+
+-- Tạo bảng GIẢNG VIÊN – LECTURERS
+CREATE TABLE lecturers (
+  lecturer_id INT AUTO_INCREMENT PRIMARY KEY,
+  ADD COLUMN user_id INT UNIQUE,
+  lecturer_code VARCHAR(10) NOT NULL UNIQUE,
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  phone VARCHAR(20),
+  faculty_id INT NOT NULL,
+  degree ENUM('Bachelor','Master','PhD','Professor') NOT NULL,
+  FOREIGN KEY (faculty_id) REFERENCES faculties(faculty_id)
+  ADD FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+) ENGINE=InnoDB;
+
+-- Tạo bảng MÔN HỌC – SUBJECTS
+CREATE TABLE subjects (
+  subject_id INT AUTO_INCREMENT PRIMARY KEY,     -- Mã số môn học, tự tăng, khóa chính
+  subject_code VARCHAR(10) NOT NULL UNIQUE,      -- Mã môn học (ví dụ: CNTT101), duy nhất
+  subject_name VARCHAR(100) NOT NULL,            -- Tên môn học (ví dụ: Lập trình Java)
+  credit_hours INT NOT NULL,                     -- Số tín chỉ của môn học
+  description TEXT,                              -- Mô tả chi tiết về môn học
+  prerequisite_code VARCHAR(10),                 -- Mã môn học tiên quyết (nếu có)
+  CONSTRAINT fk_prerequisite 
+  FOREIGN KEY (prerequisite_code) REFERENCES subjects(subject_code)   -- Ràng buộc khóa ngoại: môn tiên quyết phải tồn tại trong bảng subjects
+) ENGINE=InnoDB;
+
+-- Tạo bảng LỚP HỌC PHẦN – CLASSES
+CREATE TABLE classes (
+  class_id INT AUTO_INCREMENT PRIMARY KEY,        -- Mã số lớp học phần, tự tăng, khóa chính
+  class_code VARCHAR(20) NOT NULL UNIQUE,         -- Mã lớp học phần (ví dụ: CNTT101-01), duy nhất
+  subject_id INT NOT NULL,                        -- Mã môn học, liên kết với bảng subjects
+  lecturer_id INT NOT NULL,                       -- Mã giảng viên, liên kết với bảng lecturers
+  semester ENUM('Spring','Summer','Fall') NOT NULL, -- Học kỳ: Xuân, Hè, hoặc Thu
+  year YEAR NOT NULL,                             -- Năm học (ví dụ: 2026)
+  FOREIGN KEY (subject_id) REFERENCES subjects(subject_id),   -- Khóa ngoại: tham chiếu môn học
+  FOREIGN KEY (lecturer_id) REFERENCES lecturers(lecturer_id) -- Khóa ngoại: tham chiếu giảng viên
+) ENGINE=InnoDB;
+
+-- Tạo bảng ĐĂNG KÝ HỌC – ENROLLMENTS
+CREATE TABLE enrollments (
+  enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id INT NOT NULL,
+  class_id INT NOT NULL,
+  registration_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+  status ENUM('Registered','Completed','Cancelled','Failed') DEFAULT 'Registered',
+  UNIQUE (student_id, class_id),
+  FOREIGN KEY (student_id) REFERENCES students(student_id),
+  FOREIGN KEY (class_id) REFERENCES classes(class_id)
+) ENGINE=InnoDB;
+
+-- Tạo bảng ĐIỂM SỐ – GRADES
+CREATE TABLE grades (
+  grade_id INT AUTO_INCREMENT PRIMARY KEY,
+  enrollment_id INT NOT NULL UNIQUE,
+  score DECIMAL(5,2),
+  grade_letter VARCHAR(2),
+  FOREIGN KEY (enrollment_id) REFERENCES enrollments(enrollment_id)
+) ENGINE=InnoDB;
+
+
+-- 2. VIEW BÁO CÁO – THỐNG KÊ
+
+-- Tạo bảng KẾT QUẢ HỌC TẬP
+CREATE VIEW view_student_results AS
+SELECT
+ s.student_code,
+ CONCAT(s.last_name,' ',s.first_name) AS full_name,
+ sub.subject_name,
+ c.class_code,
+ c.semester,
+ c.year,
+ g.score,
+ g.grade_letter
+FROM grades g
+JOIN enrollments e ON g.enrollment_id = e.enrollment_id
+JOIN students s ON e.student_id = s.student_id
+JOIN classes c ON e.class_id = c.class_id
+JOIN subjects sub ON c.subject_id = sub.subject_id;
+
+-- Tạo bảng SINH VIÊN THEO KHOA
+CREATE VIEW view_students_by_faculty AS
+SELECT f.faculty_name, COUNT(s.student_id) AS total_students
+FROM faculties f
+LEFT JOIN students s ON f.faculty_id = s.faculty_id
+GROUP BY f.faculty_id;
+
+-- Tạo bảng ĐIỂM TRUNG BÌNH THEO MÔN
+CREATE VIEW view_avg_score_by_subject AS
+SELECT sub.subject_name, AVG(g.score) AS avg_score
+FROM grades g
+JOIN enrollments e ON g.enrollment_id = e.enrollment_id
+JOIN classes c ON e.class_id = c.class_id
+JOIN subjects sub ON c.subject_id = sub.subject_id
+GROUP BY sub.subject_id;
+
+-- 3.Tạo bảo mật 2FA + EMAIL RESET PASSWORD 
+
+-- Tạo Bảng reset mật khẩu (Email)
+CREATE TABLE password_resets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  token VARCHAR(255) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used TINYINT DEFAULT 0,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB;
+
+-- Tạo Bảng 2FA
+CREATE TABLE two_factor_auth (
+  user_id INT PRIMARY KEY,
+  secret_key VARCHAR(255) NOT NULL,
+  enabled TINYINT DEFAULT 0,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB;
+

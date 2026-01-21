@@ -59,22 +59,20 @@ session_start();
 require_once __DIR__ . '/../Database/db.php';
 require_once __DIR__ . '/../includes/audit_log.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: ../public/home.php");
-    exit;
-}
+$id = (int)$_POST['id'];
 
-$id = $_POST['id'];
+/* OLD DATA */
+$stmt = $conn->prepare("SELECT * FROM students WHERE student_id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$old = $stmt->get_result()->fetch_assoc();
 
-// OLD DATA
-$old = $conn->query(
-    "SELECT * FROM students WHERE id = $id"
-)->fetch_assoc();
+/* DELETE */
+$stmt = $conn->prepare("DELETE FROM students WHERE student_id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
 
-// DELETE
-$conn->query("DELETE FROM students WHERE id = $id");
-
-// AUDIT LOG
+/* AUDIT LOG */
 writeAuditLog(
     $conn,
     $_SESSION['user_id'],
@@ -82,10 +80,9 @@ writeAuditLog(
     'DELETE',
     'students',
     $id,
-    json_encode($old),
+    $old,
     null
 );
 
 header("Location: ../public/home.php");
 exit;
-

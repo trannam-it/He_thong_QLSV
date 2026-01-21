@@ -160,7 +160,8 @@ $reset->execute();
 $_SESSION['authenticated'] = true;
 $_SESSION['user_id']  = $user['id'];
 $_SESSION['username'] = $user['username'];
-$_SESSION['role']     = $user['role_code'];
+$_SESSION['role']     = $user['role_code']; // admin | teacher | student
+
 
 /* ===============================
    🔐 AUDIT LOG – LOGIN
@@ -169,20 +170,20 @@ writeAuditLog(
     $conn,
     $user['id'],
     $user['username'],
-    'LOGIN',
+    'LOGIN_FAIL',
     'users',
     $user['id'],
     null,
-    null
+    ['failed_attempts' => $failed]
 );
+
 
 /* ===============================
    PHÂN LUỒNG THEO ROLE
 ================================ */
 switch ($user['role_code']) {
 
-    case 'super_admin':
-    case 'content_admin':
+    case 'admin':
         header("Location: home.php");
         break;
 
@@ -191,19 +192,22 @@ switch ($user['role_code']) {
         break;
 
     case 'student':
-        header("Location: ../models/student.php");
+        header("Location: student.php");
         break;
 
     default:
         header("Location: index.php");
 }
-
 exit;
 
 
-?>
 
-
-
-
-
+// <!-- data-bs-dismiss="modal"
+//                 >
+//                     Close
+//                 </button>
+//                 <form method="POST" action="../models/deleteM.php">
+//             <div class="modal-footer">
+//                 <button type="button" class="btn btn-secondary"
+//                     data-bs-dismiss="modal" 
+//                     !>

@@ -43,3 +43,16 @@ writeAuditLog(
 
 header("Location: ../public/user_manage.php");
 exit;
+writeAuditLog(
+    $conn,
+    $_SESSION['user_id'],
+    $_SESSION['username'],
+    'CREATE_USER',
+    'users',
+    $user_id,
+    null,
+    [
+        'username' => $username,
+        'role' => $role
+    ]
+);

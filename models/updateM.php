@@ -78,35 +78,35 @@ session_start();
 require_once __DIR__ . '/../Database/db.php';
 require_once __DIR__ . '/../includes/audit_log.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: ../public/home.php");
-    exit;
-}
+$id = (int)$_POST['id'];
 
-$id = $_POST['id'];
+/* OLD */
+$stmt = $conn->prepare("SELECT * FROM students WHERE student_id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$old = $stmt->get_result()->fetch_assoc();
 
-// OLD
-$old = $conn->query(
-    "SELECT * FROM students WHERE id = $id"
-)->fetch_assoc();
+/* NEW DATA */
+$first_name = $_POST['first_name'];
+$last_name  = $_POST['last_name'];
+$email      = $_POST['email'];
+$phone      = $_POST['phone'];
 
-// NEW DATA
-$name  = $_POST['name'];
-$email = $_POST['email'];
-$phone = $_POST['phone'];
-
-$stmt = $conn->prepare(
-    "UPDATE students SET name=?, email=?, phone=? WHERE id=?"
-);
-$stmt->bind_param("sssi", $name, $email, $phone, $id);
+$stmt = $conn->prepare("
+    UPDATE students 
+    SET first_name=?, last_name=?, email=?, phone=?
+    WHERE student_id=?
+");
+$stmt->bind_param("ssssi", $first_name, $last_name, $email, $phone, $id);
 $stmt->execute();
 
-// NEW
-$new = $conn->query(
-    "SELECT * FROM students WHERE id = $id"
-)->fetch_assoc();
+/* NEW */
+$stmt = $conn->prepare("SELECT * FROM students WHERE student_id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$new = $stmt->get_result()->fetch_assoc();
 
-// AUDIT LOG
+/* AUDIT */
 writeAuditLog(
     $conn,
     $_SESSION['user_id'],
@@ -114,10 +114,9 @@ writeAuditLog(
     'UPDATE',
     'students',
     $id,
-    json_encode($old),
-    json_encode($new)
+    $old,
+    $new
 );
 
 header("Location: ../public/home.php");
 exit;
-?>

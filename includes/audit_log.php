@@ -1,15 +1,23 @@
 <?php
 function writeAuditLog(
     mysqli $conn,
-    int $user_id,
-    string $username,
+    ?int $user_id,
+    ?string $username,
     string $action,
     string $table_name,
     ?int $record_id = null,
-    ?string $old_data = null,
-    ?string $new_data = null
+    $old_data = null,
+    $new_data = null
 ) {
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+
+    // Chuyển array → JSON nếu cần
+    if (is_array($old_data)) {
+        $old_data = json_encode($old_data, JSON_UNESCAPED_UNICODE);
+    }
+    if (is_array($new_data)) {
+        $new_data = json_encode($new_data, JSON_UNESCAPED_UNICODE);
+    }
 
     $sql = "
         INSERT INTO audit_logs
@@ -18,8 +26,6 @@ function writeAuditLog(
     ";
 
     $stmt = $conn->prepare($sql);
-
-    /* 🚨 BẮT LỖI NGAY TẠI ĐÂY */
     if (!$stmt) {
         die('AuditLog Prepare Error: ' . $conn->error);
     }

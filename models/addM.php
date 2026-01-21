@@ -76,25 +76,22 @@ session_start();
 require_once __DIR__ . '/../Database/db.php';
 require_once __DIR__ . '/../includes/audit_log.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: ../public/home.php");
-    exit;
-}
+$first_name  = $_POST['first_name'];
+$last_name   = $_POST['last_name'];
+$email       = $_POST['email'];
+$phone       = $_POST['phone'];
+$faculty_id  = $_POST['faculty_id'];
 
-$name  = $_POST['name'];
-$email = $_POST['email'];
-$phone = $_POST['phone'];
-
-// INSERT
-$stmt = $conn->prepare(
-    "INSERT INTO students (name, email, phone) VALUES (?, ?, ?)"
-);
-$stmt->bind_param("sss", $name, $email, $phone);
+$stmt = $conn->prepare("
+    INSERT INTO students (first_name, last_name, email, phone, faculty_id)
+    VALUES (?, ?, ?, ?, ?)
+");
+$stmt->bind_param("ssssi", $first_name, $last_name, $email, $phone, $faculty_id);
 $stmt->execute();
 
 $student_id = $conn->insert_id;
 
-// AUDIT LOG
+/* AUDIT */
 writeAuditLog(
     $conn,
     $_SESSION['user_id'],
@@ -103,7 +100,7 @@ writeAuditLog(
     'students',
     $student_id,
     null,
-    json_encode($_POST)
+    $_POST
 );
 
 header("Location: ../public/home.php");

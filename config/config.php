@@ -13,7 +13,7 @@
 $servername ="localhost";   // hoặc 127.0.0.1
 $username   = "root";
 $password   = "";
-$db_name    = "student_management";
+$db_name    = "database_qlsv";
 $port       = 3307;
 
 $conn = new mysqli($servername, $username, $password, $db_name, $port);

@@ -12,7 +12,7 @@
 <body>
 
     <div class="login-container">
-        <h2 class="text-center">Welcome PHP WebApp</h2>
+        <h2 class="text-center">Welcome PHP WebApabc</h2>
         <p class="text-center">Enter Your Credential to login</p>
          <!-- Start the session and display the success message if it exists -->
          <?php

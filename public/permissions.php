@@ -1,15 +1,19 @@
 <?php
 session_start();
+
+/* ======================================================
+    0. KIỂM TRA QUYỀN TRUY CẬP (ADMIN ONLY)
+   ====================================================== */
+// Nếu không tồn tại session role hoặc role không phải admin thì chuyển hướng ngay
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    // Chuyển hướng về trang index.php cùng cấp hoặc theo cấu trúc bạn định nghĩa
+    header("Location: index.php");
+    exit(); // Dừng thực thi các mã bên dưới để bảo mật
+}
+
 // --- 1. KẾT NỐI DB & KIỂM TRA QUYỀN ---
 $conn = mysqli_connect('localhost', 'root', '', 'student_management');
 mysqli_set_charset($conn, "utf8mb4");
-
-// Kiểm tra quyền (Chỉ Admin mới được vào trang này)
-if (!isset($_SESSION['role']) || $_SESSION['role'] != 'admin') {
-    die("<div class='container mt-5 alert alert-danger rounded-4 shadow-sm'>
-            <i class='bi bi-exclamation-octagon me-2'></i> Bạn không có quyền truy cập trang này!
-         </div>");
-}
 
 $msg = "";
 $type = "";
@@ -18,7 +22,7 @@ $type = "";
 if (isset($_POST['update_role'])) {
     $user_id = (int)$_POST['user_id'];
     $new_role = $_POST['role'];
-    $current_admin_id = $_SESSION['user_id'];
+    $current_admin_id = $_SESSION['user_id'] ?? 0;
 
     // Ngăn chặn tự đổi quyền của chính mình (để tránh mất quyền admin vô ý)
     if ($user_id == $current_admin_id) {
@@ -31,12 +35,14 @@ if (isset($_POST['update_role'])) {
             $msg = "Đã cập nhật quyền thành công!";
             $type = "success";
         }
+        mysqli_stmt_close($stmt);
     }
 }
 
 // --- 3. LẤY DANH SÁCH NGƯỜI DÙNG ---
 $query = "SELECT id, username, role FROM users ORDER BY role ASC, username ASC";
-$users = mysqli_fetch_all(mysqli_query($conn, $query), MYSQLI_ASSOC);
+$result = mysqli_query($conn, $query);
+$users = mysqli_fetch_all($result, MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>

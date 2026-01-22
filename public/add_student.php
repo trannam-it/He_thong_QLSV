@@ -1,6 +1,15 @@
 <?php
 session_start();
 
+/* ======================================================
+    0. KIỂM TRA QUYỀN TRUY CẬP (ADMIN ONLY)
+   ====================================================== */
+// Nếu không phải admin, chuyển hướng về index.php
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: index.php");
+    exit();
+}
+
 // --- 1. KẾT NỐI CƠ SỞ DỮ LIỆU ---
 $conn = mysqli_connect('localhost', 'root', '', 'student_management');
 if (!$conn) {
@@ -67,7 +76,7 @@ if (isset($_POST['btn_save'])) {
             $name = $email = $phone = $address = "";
 
         } catch (Exception $e) {
-            // Nếu có lỗi ở bất kỳ bước nào, hoàn tác toàn bộ (không tạo user rác)
+            // Nếu có lỗi ở bất kỳ bước nào, hoàn tác toàn bộ
             mysqli_rollback($conn);
             $error = "Lỗi hệ thống: " . $e->getMessage();
         }
@@ -90,7 +99,7 @@ if (isset($_POST['btn_save'])) {
         .form-label { font-weight: 600; color: #444; }
         .btn-primary { background-color: var(--primary-color); border: none; padding: 0.7rem; }
         .btn-primary:hover { background-color: #2e59d9; }
-    </small></style>
+    </style>
 </head>
 <body>
 

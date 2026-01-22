@@ -1,6 +1,15 @@
 <?php
 session_start();
 
+/* ======================================================
+    0. KIỂM TRA QUYỀN TRUY CẬP (ADMIN ONLY)
+   ====================================================== */
+// Kiểm tra nếu không phải admin thì chuyển hướng về index.php
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: index.php");
+    exit(); // Quan trọng: Dừng kịch bản để không thực hiện các lệnh header Excel bên dưới
+}
+
 // 1. KẾT NỐI CƠ SỞ DỮ LIỆU
 $conn = mysqli_connect('localhost', 'root', '', 'student_management');
 if (!$conn) {

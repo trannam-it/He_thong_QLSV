@@ -1,6 +1,21 @@
 <?php
 session_start();
 
+/* ======================================================
+    0. KIỂM TRA QUYỀN TRUY CẬP
+   ====================================================== */
+// 1. Nếu chưa đăng nhập thì bắt buộc về trang login
+if (!isset($_SESSION['role'])) {
+    header("Location: ../public/index.php");
+    exit();
+}
+
+// 2. Nếu đã đăng nhập nhưng KHÔNG PHẢI admin thì chuyển sang trang public index
+if ($_SESSION['role'] !== 'admin') {
+    header("Location: ../public/index.php");
+    exit();
+}
+
 /* =====================
     1. KẾT NỐI DATABASE
 ===================== */
@@ -47,17 +62,14 @@ $classes = mysqli_query($conn, "SELECT * FROM classes");
         :root { --primary: #4361ee; --bg: #f4f7fe; }
         body { background: var(--bg); font-family: 'Inter', sans-serif; }
         
-        /* Sidebar */
         .sidebar { width: 260px; height: 100vh; position: fixed; background: #fff; border-right: 1px solid #e9ecef; z-index: 1000; }
         .main-content { margin-left: 260px; padding: 40px; }
         .nav-link { color: #6c757d; border-radius: 12px; padding: 12px 15px; margin-bottom: 8px; }
         .nav-link.active { background: var(--primary); color: #fff !important; font-weight: bold; }
 
-        /* Components */
         .card-custom { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); background: #fff; }
         .table thead th { background: #f8faff; text-transform: uppercase; font-size: 0.75rem; color: #8d99ae; padding: 15px; border: none; }
         
-        /* Nút Thao tác giống ảnh mẫu của bạn */
         .btn-action { width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: #fff; border: 1px solid #eee; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .btn-action:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .btn-edit { color: #6c757d; }
@@ -134,7 +146,6 @@ $classes = mysqli_query($conn, "SELECT * FROM classes");
                     <?php if (mysqli_num_rows($result) > 0): ?>
                         <?php while ($row = mysqli_fetch_assoc($result)): ?>
                         <?php 
-                            // Xử lý an toàn để tránh lỗi "Undefined array key"
                             $std_id = $row['student_id'] ?? $row['id'] ?? 'N/A';
                             $full_name = $row['full_name'] ?? $row['name'] ?? 'Không rõ';
                             $email = $row['email'] ?? 'Chưa cập nhật';
@@ -157,7 +168,7 @@ $classes = mysqli_query($conn, "SELECT * FROM classes");
                             <td class="text-muted"><?= $birthday ?></td>
                             
                             <td class="text-center">
-                                <a href="class_details.php?subject_id=4" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                <a href="edit_grade.php?subject_id=4" class="btn btn-sm btn-outline-primary rounded-pill px-3">
                                     <i class="bi bi-pencil-fill me-1"></i> Nhập điểm
                                 </a>
                             </td>

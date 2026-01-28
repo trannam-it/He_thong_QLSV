@@ -97,6 +97,19 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if (!$user = $result->fetch_assoc()) {
+    // Không có user -> không thể tăng failed_attempts vì không biết id
+    // Nhưng vẫn có thể ghi log hệ thống (user_id = 0)
+    writeAuditLog(
+        $conn,
+        0,
+        $username,
+        'LOGIN_FAIL',
+        'users',
+        null,
+        null,
+        ['reason' => 'USER_NOT_FOUND']
+    );
+
     $_SESSION['error'] = "Tài khoản không tồn tại.";
     header("Location: index.php");
     exit;
@@ -123,7 +136,7 @@ if ($user['locked_until'] && strtotime($user['locked_until']) > time()) {
 if (!password_verify($password, $user['password_hash'])) {
 
     // Tăng failed_attempts
-    $failed = $user['failed_attempts'] + 1;
+    $failed = (int)$user['failed_attempts'] + 1;
     $lockUntil = null;
 
     if ($failed >= 5) {
@@ -135,8 +148,21 @@ if (!password_verify($password, $user['password_hash'])) {
         SET failed_attempts = ?, locked_until = ?
         WHERE id = ?
     ");
+    // locked_until có thể NULL => bind kiểu s vẫn OK với mysqli (NULL sẽ được gửi là NULL)
     $update->bind_param("isi", $failed, $lockUntil, $user['id']);
     $update->execute();
+
+    // 🔐 AUDIT LOG – LOGIN FAIL
+    writeAuditLog(
+        $conn,
+        (int)$user['id'],
+        $user['username'],
+        'LOGIN_FAIL',
+        'users',
+        (int)$user['id'],
+        null,
+        ['failed_attempts' => $failed, 'locked_until' => $lockUntil]
+    );
 
     $_SESSION['error'] = "Mật khẩu không chính xác.";
     header("Location: index.php");
@@ -160,21 +186,21 @@ $reset->execute();
 $_SESSION['authenticated'] = true;
 $_SESSION['user_id']  = $user['id'];
 $_SESSION['username'] = $user['username'];
-$_SESSION['role']     = $user['role_code']; // admin | teacher | student
+$_SESSION['role']     = $user['role_code']; // super_admin | content_admin | teacher | student
 
 
 /* ===============================
-   🔐 AUDIT LOG – LOGIN
+   🔐 AUDIT LOG – LOGIN SUCCESS
 ================================ */
 writeAuditLog(
     $conn,
-    $user['id'],
+    (int)$user['id'],
     $user['username'],
-    'LOGIN_FAIL',
+    'LOGIN_SUCCESS',
     'users',
-    $user['id'],
+    (int)$user['id'],
     null,
-    ['failed_attempts' => $failed]
+    ['role' => $user['role_code']]
 );
 
 
@@ -183,7 +209,8 @@ writeAuditLog(
 ================================ */
 switch ($user['role_code']) {
 
-    case 'admin':
+    case 'super_admin':
+    case 'content_admin':
         header("Location: home.php");
         break;
 
@@ -201,13 +228,3 @@ switch ($user['role_code']) {
 exit;
 
 
-
-// <!-- data-bs-dismiss="modal"
-//                 >
-//                     Close
-//                 </button>
-//                 <form method="POST" action="../models/deleteM.php">
-//             <div class="modal-footer">
-//                 <button type="button" class="btn btn-secondary"
-//                     data-bs-dismiss="modal" 
-//                     !>

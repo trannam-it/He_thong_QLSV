@@ -20,7 +20,7 @@ function authCheck(array $allowedRoles = [])
         $_SESSION['authenticated'] !== true
     ) {
         $_SESSION['error'] = "⚠️ Vui lòng đăng nhập để tiếp tục.";
-        header("Location: ../public/index.php");
+        header("Location: /public/index.php");
         exit;
     }
 

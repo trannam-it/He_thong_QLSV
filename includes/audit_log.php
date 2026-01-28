@@ -9,6 +9,10 @@ function writeAuditLog(
     $old_data = null,
     $new_data = null
 ) {
+    // audit_logs.user_id trong DB đang NOT NULL, nên luôn fallback về 0 nếu chưa có user
+    $user_id = $user_id ?? 0;
+    $username = $username ?? 'SYSTEM';
+
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
 
     // Chuyển array → JSON nếu cần

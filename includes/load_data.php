@@ -41,4 +41,4 @@ if (!$result) {
     die(mysqli_error($conn));
 }
 
-?> -->
+?> 

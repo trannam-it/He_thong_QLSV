@@ -1,0 +1,92 @@
+<?php
+session_start();
+?>
+
+<form action="../public/delete.php" method="POST">
+<div
+    class="modal fade"
+    id="delete<?= $row['id'] ?>"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="modalTitleId"
+    aria-hidden="true"
+> 
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitleId">
+                    Delete Form
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">Are you sure to Delete this Record?</div>
+            </div>
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                >
+                    Close
+                </button>
+                <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+</form>
+
+<script>
+    var modalId = document.getElementById('modalId');
+
+    modalId.addEventListener('show.bs.modal', function (event) {
+          // Button that triggered the modal
+          let button = event.relatedTarget;
+          // Extract info from data-bs-* attributes
+          let recipient = button.getAttribute('data-bs-whatever');
+
+        // Use above variables to manipulate the DOM
+    });
+</script>
+
+<?php
+//  thêm mới GHI LOG KHI XÓA SINH VIÊN
+
+
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/audit_log.php';
+
+$id = (int)$_POST['id'];
+
+/* OLD DATA */
+$stmt = $conn->prepare("SELECT * FROM students WHERE student_id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$old = $stmt->get_result()->fetch_assoc();
+
+/* DELETE */
+$stmt = $conn->prepare("DELETE FROM students WHERE student_id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+
+/* AUDIT LOG */
+writeAuditLog(
+    $conn,
+    $_SESSION['user_id'],
+    $_SESSION['username'],
+    'DELETE',
+    'students',
+    $id,
+    $old,
+    null
+);
+
+header("Location: ../public/home.php");
+exit;

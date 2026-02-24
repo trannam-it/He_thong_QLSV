@@ -2,10 +2,10 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-require '../config/config.php';
-require '../includes/load_data.php';
-require '../includes/auth_check.php';
-require '../includes/dashboard_helper.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/load_data.php';
+require_once __DIR__ . '/../includes/auth_check.php';
+require_once __DIR__ . '/../includes/dashboard_helper.php';
 
 authCheck(['student']);
 

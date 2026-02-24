@@ -3,7 +3,7 @@ $servername ="localhost";
 $username ="root";
 $password ="";
 $db_name ="test_qlsv";
-$port       = 3307;
+$port       = 3306;
 
 $conn = new mysqli($servername, $username, $password, $db_name,$port);
 
@@ -13,7 +13,7 @@ if (!$conn){
 
 // Define base URL for assets
 if (!defined('BASE_URL')) {
-    define('BASE_URL', '/abc/web_QLSV/');
+    define('BASE_URL', '/web_QLSV/');
 }
 
 // if (!defined('BASE_URL')) {

@@ -163,7 +163,7 @@ $user = $_SESSION['user'] ?? null;
 
         <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'lecturers')!==false?'active':'' ?>"
-               <!-- href="<?= BASE_URL ?>admin/views/lecturers/index.php"> -->
+                href="<?= BASE_URL ?>admin/views/lecturers/index.php">
                 <i class="bi bi-person"></i>
                 <span>Giảng viên</span>
             </a>

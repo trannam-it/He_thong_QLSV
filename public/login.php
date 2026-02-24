@@ -1,4 +1,11 @@
 <?php
+if (!defined('BASE_URL')) {
+    define('BASE_URL', '/web_QLSV/');
+}
+?>
+
+
+<?php
 /**
  * Login Handler - Xử lý đăng nhập hệ thống
  * Hỗ trợ RBAC (Role-Based Access Control)
@@ -204,16 +211,16 @@ switch ($user['role_code']) {
 
     case 'super_admin':
     case 'content_admin':
-        header("Location: /abc/web_QLSV/admin/Dashboard.php");
+        header("Location: " . BASE_URL . "admin/Dashboard.php");
         break;
 
 
     case 'teacher':
-        header("Location: /abc/web_QLSV/public/teacher.php");
+        header("Location: ". BASE_URL ."public/teacher.php");
         break;
 
     case 'student':
-        header("Location: /abc/web_QLSV/public/student.php");
+        header("Location:" . BASE_URL ."public/student.php");
         break;
 
     default:

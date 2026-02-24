@@ -204,16 +204,16 @@ switch ($user['role_code']) {
 
     case 'super_admin':
     case 'content_admin':
-        header("Location: /web_QLSV/admin/Dashboard.php");
+        header("Location: /abc/web_QLSV/admin/Dashboard.php");
         break;
 
 
     case 'teacher':
-        header("Location: teacher.php");
+        header("Location: /abc/web_QLSV/public/teacher.php");
         break;
 
     case 'student':
-        header("Location: student.php");
+        header("Location: /abc/web_QLSV/public/student.php");
         break;
 
     default:

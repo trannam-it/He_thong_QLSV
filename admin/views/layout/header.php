@@ -137,7 +137,7 @@ $user = $_SESSION['user'] ?? null;
 
         <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'Dashboard')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/Dashboard.php">
+               href="<?= BASE_URL ?>admin/Dashboard.php">
                 <i class="bi bi-house"></i>
                 <span>Dashboard</span>
             </a>
@@ -147,7 +147,7 @@ $user = $_SESSION['user'] ?? null;
 
         <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'users')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/users/index.php">
+               href="<?= BASE_URL ?>admin/views/users/index.php">
                 <i class="bi bi-people"></i>
                 <span>TÀI KHOẢN </span>
             </a>
@@ -155,7 +155,7 @@ $user = $_SESSION['user'] ?? null;
 
          <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'students')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/students/index.php">
+               href="<?= BASE_URL ?>admin/views/students/index.php">
                 <i class="bi bi-mortarboard"></i>
                 <span>Sinh viên</span>
             </a>
@@ -163,7 +163,7 @@ $user = $_SESSION['user'] ?? null;
 
         <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'lecturers')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/lecturers/index.php">
+               <!-- href="<?= BASE_URL ?>admin/views/lecturers/index.php"> -->
                 <i class="bi bi-person"></i>
                 <span>Giảng viên</span>
             </a>
@@ -174,7 +174,7 @@ $user = $_SESSION['user'] ?? null;
 
          <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'audit')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/roles/index.php">
+               href="<?= BASE_URL ?>admin/views/roles/index.php">
                 <i class="bi bi-clipboard-check"></i>
                 <span>PHÂN QUYỀN</span>
             </a>
@@ -182,7 +182,7 @@ $user = $_SESSION['user'] ?? null;
 
         <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'audit')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/audit_logs/index.php">
+               href="<?= BASE_URL ?>admin/views/audit_logs/index.php">
                 <i class="bi bi-clipboard-check"></i>
                 <span>Nhật ký</span>
             </a>
@@ -191,7 +191,7 @@ $user = $_SESSION['user'] ?? null;
         
         <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'settings')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/settings/index.php">
+               href="<?= BASE_URL ?>admin/views/settings/index.php">
                 <i class="bi bi-gear"></i>
                 <span>Cài đặt</span>
             </a>
@@ -202,7 +202,7 @@ $user = $_SESSION['user'] ?? null;
 
          <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'faculty')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/faculty.php">
+               href="<?= BASE_URL ?>admin/faculty.php">
                 <i class="bi bi-building"></i>
                 <span> KHOA </span>
             </a>
@@ -210,7 +210,7 @@ $user = $_SESSION['user'] ?? null;
 
         <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'classes')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/classes/index.php">
+               href="<?= BASE_URL ?>admin/views/classes/index.php">
                 <i class="bi bi-diagram-3"></i>
                 <span>Lớp cơ sở</span>
             </a>
@@ -218,7 +218,7 @@ $user = $_SESSION['user'] ?? null;
 
         <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'subjects')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/subjects/index.php">
+               href="<?= BASE_URL ?>admin/views/subjects/index.php">
                 <i class="bi bi-book"></i>
                 <span> Môn Học</span>
             </a>
@@ -226,7 +226,7 @@ $user = $_SESSION['user'] ?? null;
 
         <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'subjects')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/grades/index.php">
+               href="<?= BASE_URL ?>admin/views/grades/index.php">
                 <i class="bi bi-graph-up"></i>
                 <span> ĐĂNG KÝ HỌC PHẦN</span>
             </a>
@@ -237,7 +237,7 @@ $user = $_SESSION['user'] ?? null;
 
          <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'subjects')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/grades/index.php">
+               href="<?= BASE_URL ?>admin/views/grades/index.php">
                 <i class="bi bi-graph-up"></i>
                 <span> ĐIỂM SỐ</span>
             </a>
@@ -245,7 +245,7 @@ $user = $_SESSION['user'] ?? null;
 
          <li class="sidebar-menu-item">
             <a class="sidebar-menu-link <?= strpos($_SERVER['PHP_SELF'],'subjects')!==false?'active':'' ?>"
-               href="/web_QLSV/admin/views/reports/index.php">
+               href="<?= BASE_URL ?>admin/views/reports/index.php">
                 <i class="bi bi-file-earmark-bar-graph"></i>
                 <span> BÁO CÁO & THỐNG KÊ</span>
             </a>
@@ -256,7 +256,7 @@ $user = $_SESSION['user'] ?? null;
 
         <li class="sidebar-menu-item">
             <a class="sidebar-menu-link text-danger"
-               href="/web_QLSV/public/logout.php">
+               href="<?= BASE_URL ?>public/logout.php">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Đăng xuất</span>
             </a>

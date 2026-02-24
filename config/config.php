@@ -13,8 +13,13 @@ if (!$conn){
 
 // Define base URL for assets
 if (!defined('BASE_URL')) {
-    define('BASE_URL', '/abc/web_QLSV/public/');
+    define('BASE_URL', '/abc/web_QLSV/');
 }
+
+// if (!defined('BASE_URL')) {
+//     define('BASE_URL', 'http://' . $_SERVER['HTTP_HOST'] . '/abc/web_QLSV/public/');
+// }
+
 
 
 

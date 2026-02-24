@@ -1,4 +1,4 @@
-                <!-- Alert Messages -->
+        <!-- Alert Messages -->
                 <?php
 
                     // Display success message

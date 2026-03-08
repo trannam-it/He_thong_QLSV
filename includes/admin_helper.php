@@ -31,12 +31,38 @@ function countTotalLecturers($conn) {
 /**
  * Đếm tổng số lớp học
  */
+// function countTotalClasses($conn) {
+//     $sql = "SELECT COUNT(*) as total FROM classes WHERE year = YEAR(CURDATE())";
+//     $result = $conn->query($sql);
+//     $row = $result->fetch_assoc();
+//     return $row['total'] ?? 0;
+// }
+
+// function countTotalClasses($conn) {
+//     $sql = "SELECT COUNT(*) as total FROM classes";
+//     $result = $conn->query($sql);
+
+//     if (!$result) {
+//         die("SQL Error: " . $conn->error);
+//     }
+
+//     $row = $result->fetch_assoc();
+//     return $row['total'] ?? 0;
+// }
+
 function countTotalClasses($conn) {
-    $sql = "SELECT COUNT(*) as total FROM classes WHERE year = YEAR(CURDATE())";
+    $sql = "SELECT COUNT(*) as total FROM base_classes";
     $result = $conn->query($sql);
+
+    if (!$result) {
+        die("SQL Error: " . $conn->error);
+    }
+
     $row = $result->fetch_assoc();
     return $row['total'] ?? 0;
 }
+
+
 
 /**
  * Đếm tổng số khoa
@@ -58,7 +84,6 @@ function getStudentsByFaculty($conn) {
             COUNT(s.student_id) as student_count
         FROM faculties f
         LEFT JOIN students s ON f.faculty_id = s.faculty_id
-        WHERE s.status = 'Studying'
         GROUP BY f.faculty_id, f.faculty_name
         ORDER BY student_count DESC
     ";

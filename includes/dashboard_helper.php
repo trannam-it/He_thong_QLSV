@@ -346,12 +346,21 @@ function formatSemester($semester) {
 /**
  * Format trạng thái enrollment
  */
+// function formatEnrollmentStatus($status) {
+//     $statuses = [
+//         'Registered' => 'Đang học',
+//         'Completed' => 'Hoàn thành',
+//         'Cancelled' => 'Đã hủy',
+//         'Failed' => 'Không đạt'
+//     ];
+//     return $statuses[$status] ?? $status;
+// }
+
 function formatEnrollmentStatus($status) {
     $statuses = [
-        'Registered' => 'Đang học',
+        'Enrolled'  => 'Đang học',
         'Completed' => 'Hoàn thành',
-        'Cancelled' => 'Đã hủy',
-        'Failed' => 'Không đạt'
+        'Withdrawn' => 'Đã hủy',
     ];
     return $statuses[$status] ?? $status;
 }
@@ -359,13 +368,37 @@ function formatEnrollmentStatus($status) {
 /**
  * Get badge class for status
  */
+// function getStatusBadgeClass($status) {
+//     $badges = [
+//         'Registered' => 'bg-primary',
+//         'Completed' => 'bg-success',
+//         'Cancelled' => 'bg-secondary',
+//         'Failed' => 'bg-danger',
+//         'Studying' => 'bg-info'
+//     ];
+//     return $badges[$status] ?? 'bg-secondary';
+// }
+
 function getStatusBadgeClass($status) {
     $badges = [
-        'Registered' => 'bg-primary',
-        'Completed' => 'bg-success',
-        'Cancelled' => 'bg-secondary',
-        'Failed' => 'bg-danger',
-        'Studying' => 'bg-info'
+        'Enrolled'  => 'bg-primary',   // Đang học
+        'Completed' => 'bg-success',   // Hoàn thành
+        'Withdrawn' => 'bg-secondary', // Đã hủy
+        'Failed'    => 'bg-danger',    // Không đạt
+        'Studying'  => 'bg-info'       // Đang học (cho sinh viên)
     ];
     return $badges[$status] ?? 'bg-secondary';
 }
+
+// function getStatusBadgeClass($status) {
+//     if (!$status) return 'bg-secondary';
+
+//     $badges = [
+//         'Enrolled'  => 'bg-primary',
+//         'Completed' => 'bg-success',
+//         'Withdrawn' => 'bg-secondary',
+//         'Failed'    => 'bg-danger'
+//     ];
+
+//     return $badges[$status] ?? 'bg-secondary';
+// }

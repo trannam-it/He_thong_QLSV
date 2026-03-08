@@ -1,42 +1,35 @@
 <?php
-$servername ="localhost";
-$username ="root";
-$password ="";
-$db_name ="test_qlsv";
-$port       = 3306;
 
-$conn = new mysqli($servername, $username, $password, $db_name,$port);
+// =========================
+//  DATABASE CONFIG
+// =========================
 
-if (!$conn){
-	die("connection error");
-}
+$servername = "localhost";
+$username   = "root";
+$password   = "";
+$db_name    = "database_qlsv";
 
-// Define base URL for assets
+// ⚠ kiểm tra port của Laragon MySQL rồi sửa ở đây:
+$port       = 3307; // Nếu Laragon của bạn là 3307 thì sửa lại 3307
+
+// =========================
+//  BASE URL CONFIG
+// =========================
+
+// Đảm bảo không define lại BASE_URL
 if (!defined('BASE_URL')) {
-    define('BASE_URL', '/web_QLSV/');
+    define('BASE_URL', '/web_QLSV');
 }
 
-// if (!defined('BASE_URL')) {
-//     define('BASE_URL', 'http://' . $_SERVER['HTTP_HOST'] . '/abc/web_QLSV/public/');
-// }
+// =========================
+//  CONNECT DATABASE
+// =========================
+$conn = new mysqli($servername, $username, $password, $db_name, $port);
 
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
+$conn->set_charset('utf8mb4');
 
-
-
-// $servername ="localhost";   // hoặc 127.0.0.1
-// $username   = "root";
-// $password   = "";
-// $db_name    = "database_qlsv";
-// $port       = 3307;
-// define('BASE_URL', '/web_QLSV');
-
-// $conn = new mysqli($servername, $username, $password, $db_name, $port);
-
-// if ($conn->connect_error) {
-//     die("Connection failed: " . $conn->connect_error);
-// }
-// ?>
-
-
-
+?>

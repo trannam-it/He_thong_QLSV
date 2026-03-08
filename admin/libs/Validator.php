@@ -60,6 +60,18 @@ class Validator
                 }
                 break;
 
+            case 'minval':
+                if (!empty($value) && is_numeric($value) && (float)$value < (float)$ruleParam) {
+                    $this->addError($field, ucfirst($field) . " phải ≥ {$ruleParam}");
+                }
+                break;
+
+            case 'maxval':
+                if (!empty($value) && is_numeric($value) && (float)$value > (float)$ruleParam) {
+                    $this->addError($field, ucfirst($field) . " phải ≤ {$ruleParam}");
+                }
+                break;
+
             case 'numeric':
                 if (!empty($value) && !is_numeric($value)) {
                     $this->addError($field, ucfirst($field) . ' phải là số');

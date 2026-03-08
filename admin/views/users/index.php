@@ -102,6 +102,28 @@ if ($action === 'store' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]
                 );
 
+                // ✅ TẠO PROFILE ĐỒNG BỘ THEO ROLE
+                $first_name = trim($_POST['first_name'] ?? '') ?: 'Chưa cập nhật';
+                $last_name  = trim($_POST['last_name']  ?? '') ?: '';
+                $faculty_id = intval($_POST['faculty_id'] ?? 1);
+
+                if ($role === 'student') {
+                    $maxRow  = $conn->query("SELECT MAX(CAST(SUBSTRING(student_code,3) AS UNSIGNED)) as mx FROM students")->fetch_assoc();
+                    $newCode = 'SV' . str_pad(((int)($maxRow['mx'] ?? 0)) + 1, 3, '0', STR_PAD_LEFT);
+                    $gender     = $_POST['gender']     ?? 'Other';
+                    $birth_date = $_POST['birth_date'] ?? date('Y-01-01', strtotime('-20 years'));
+                    $sp = $conn->prepare("INSERT INTO students (user_id, student_code, first_name, last_name, gender, birth_date, email, faculty_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Studying')");
+                    $sp->bind_param('issssssi', $user_id, $newCode, $first_name, $last_name, $gender, $birth_date, $email, $faculty_id);
+                    $sp->execute();
+                } elseif ($role === 'teacher') {
+                    $maxRow  = $conn->query("SELECT MAX(CAST(SUBSTRING(lecturer_code,3) AS UNSIGNED)) as mx FROM lecturers")->fetch_assoc();
+                    $newCode = 'GV' . str_pad(((int)($maxRow['mx'] ?? 0)) + 1, 2, '0', STR_PAD_LEFT);
+                    $degree  = $_POST['degree'] ?? 'Bachelor';
+                    $sp = $conn->prepare("INSERT INTO lecturers (user_id, lecturer_code, first_name, last_name, email, faculty_id, degree) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $sp->bind_param('issssis', $user_id, $newCode, $first_name, $last_name, $email, $faculty_id, $degree);
+                    $sp->execute();
+                }
+
                 setFlash('Thêm user thành công!', 'success');
 
             } else {
@@ -503,6 +525,10 @@ $stmt = $conn->prepare("SELECT * FROM permissions ORDER BY code");
 $stmt->execute();
 $all_permissions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
+$stmt = $conn->prepare("SELECT faculty_id, faculty_name FROM faculties ORDER BY faculty_name");
+$stmt->execute();
+$all_faculties = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
 require_once __DIR__ . '/../layout/header.php';
 ?>
 
@@ -706,12 +732,61 @@ endif; ?>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Vai Trò <span class="text-danger">*</span></label>
-                            <select class="form-select" name="role" id="role" required>
+                            <select class="form-select" name="role" id="role" required onchange="toggleProfileFields(this.value)">
                                 <option value="">-- Chọn vai trò --</option>
                                 <?php foreach ($all_roles as $r): ?>
                                 <option value="<?= $r['code'] ?>"><?= $r['name'] ?></option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+                    </div>
+
+                    <!-- Thông tin hồ sơ (hiện khi role = student hoặc teacher) -->
+                    <div id="profileFields" style="display:none;">
+                        <hr class="my-2">
+                        <small class="text-muted d-block mb-2"><i class="bi bi-info-circle"></i> Hồ sơ sẽ được tạo tự động trong hệ thống</small>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Họ đệm <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="first_name" id="first_name" placeholder="Nguyễn Văn">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="last_name" id="last_name" placeholder="An">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Khoa <span class="text-danger">*</span></label>
+                                <select class="form-select" name="faculty_id" id="faculty_id">
+                                    <?php foreach ($all_faculties as $f): ?>
+                                    <option value="<?= $f['faculty_id'] ?>"><?= htmlspecialchars($f['faculty_name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <!-- Student only -->
+                            <div class="col-md-3 mb-3" id="genderField">
+                                <label class="form-label">Giới tính</label>
+                                <select class="form-select" name="gender" id="gender">
+                                    <option value="Male">Nam</option>
+                                    <option value="Female">Nữ</option>
+                                    <option value="Other">Khác</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3" id="birthField">
+                                <label class="form-label">Ngày sinh</label>
+                                <input type="date" class="form-control" name="birth_date" id="birth_date" value="<?= date('Y-01-01', strtotime('-20 years')) ?>">
+                            </div>
+                            <!-- Teacher only -->
+                            <div class="col-md-6 mb-3" id="degreeField" style="display:none;">
+                                <label class="form-label">Học vị</label>
+                                <select class="form-select" name="degree" id="degree">
+                                    <option value="Bachelor">Cử nhân</option>
+                                    <option value="Master">Thạc sĩ</option>
+                                    <option value="PhD">Tiến sĩ</option>
+                                    <option value="Professor">Giáo sư / PGS</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -788,6 +863,33 @@ endif; ?>
 </div>
 
 <script>
+// Hiện/ẩn extra fields theo role
+function toggleProfileFields(role) {
+    const pf = document.getElementById('profileFields');
+    const df = document.getElementById('degreeField');
+    const gf = document.getElementById('genderField');
+    const bf = document.getElementById('birthField');
+    const fn = document.getElementById('first_name');
+    const ln = document.getElementById('last_name');
+
+    if (role === 'student') {
+        pf.style.display = '';
+        gf.style.display = '';
+        bf.style.display = '';
+        df.style.display = 'none';
+        fn.required = true; ln.required = true;
+    } else if (role === 'teacher') {
+        pf.style.display = '';
+        gf.style.display = 'none';
+        bf.style.display = 'none';
+        df.style.display = '';
+        fn.required = true; ln.required = true;
+    } else {
+        pf.style.display = 'none';
+        fn.required = false; ln.required = false;
+    }
+}
+
 // Reset form for new user
 function resetForm() {
     document.getElementById('formAction').value = 'store';
@@ -800,6 +902,12 @@ function resetForm() {
     document.getElementById('passwordHint').querySelector('strong').style.display = 'none';
     document.getElementById('role').value = '';
     document.getElementById('modalTitle').textContent = 'Thêm Người Dùng Mới';
+    // Reset profile section
+    toggleProfileFields('');
+    document.getElementById('first_name').value = '';
+    document.getElementById('last_name').value  = '';
+    document.getElementById('gender').value     = 'Male';
+    document.getElementById('degree').value     = 'Bachelor';
 }
 
 // Edit user
@@ -817,6 +925,8 @@ function editUser(id) {
             document.getElementById('passwordHint').querySelector('strong').style.display = 'block';
             document.getElementById('role').value = data.role_code || '';
             document.getElementById('modalTitle').textContent = 'Sửa: ' + data.username;
+            // Ẩn profile fields khi sửa (chỉ dùng khi thêm mới)
+            toggleProfileFields('');
         });
 }
 

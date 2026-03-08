@@ -1,12 +1,16 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../core/AppRouter.php';
 require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../includes/admin_helper.php';
 include __DIR__ . '/../includes/alert.php';
 
-authCheck(['super_admin', 'content_admin']);
+// Guard: chỉ admin được vào module này
+AppRouter::guardModule(['super_admin', 'content_admin']);
 
 $pageTitle = 'Dashboard';
 $userId = $_SESSION['user_id'];
@@ -375,7 +379,7 @@ include __DIR__ . '/views/layout/header.php';
         <div class="content-card">
             <div class="content-card-header d-flex justify-content-between align-items-center">
                 <h5 class="content-card-title mb-0">🧑‍🎓 Sinh viên mới nhập học</h5>
-                <a href="admin-students.php" class="btn btn-primary btn-sm">Xem tất cả</a>
+                <!-- <a href="admin-students.php" class="btn btn-primary btn-sm">Xem tất cả</a> -->
             </div>
 
             <div class="content-card-body p-0">
@@ -487,7 +491,7 @@ include __DIR__ . '/views/layout/header.php';
 <!-- Chuẩn bị dữ liệu -->
 <script>
 const studentsByFacultyLabels = <?= json_encode(array_column($studentsByFaculty, 'faculty_name')) ?>;
-const studentsByFacultyData   = <?= json_encode(array_column($studentsByFaculty, 'total')) ?>;
+const studentsByFacultyData   = <?= json_encode(array_column($studentsByFaculty, 'student_count')) ?>;
 
 const gradeLabels = <?= json_encode(array_column($gradeStats, 'grade_level')) ?>;
 const gradeData   = <?= json_encode(array_column($gradeStats, 'total')) ?>;
@@ -510,6 +514,16 @@ new Chart(document.getElementById('studentsByFacultyChart'), {
         responsive: true,
         plugins: {
             legend: { display: false }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    maxRotation: 0,
+                    minRotation: 0,
+                    autoSkip: false,
+                    font: { size: 12 }
+                }
+            }
         }
     }
 });

@@ -68,6 +68,40 @@
                 }
             }
         }
+
+        // ─── Global modal backdrop cleanup ──────────────────────────────
+        // Tự động dọn backdrop/overflow sau mỗi lần modal đóng,
+        // tránh màn hình xám khi đóng modal bằng JS (programmatic hide).
+        document.addEventListener('hidden.bs.modal', function () {
+            // Nếu không còn modal nào đang mở thì cleanup hoàn toàn
+            if (!document.querySelector('.modal.show')) {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }
+        });
+
+        // Helper toàn cục: đóng modal và gọi callback sau khi backdrop đã mất
+        window.closeModal = function (modalId, callback) {
+            const el = document.getElementById(modalId);
+            if (!el) { if (callback) callback(); return; }
+            const instance = bootstrap.Modal.getInstance(el);
+            if (!instance) {
+                document.querySelectorAll('.modal-backdrop').forEach(e => e.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+                if (callback) callback();
+                return;
+            }
+            el.addEventListener('hidden.bs.modal', function handler() {
+                el.removeEventListener('hidden.bs.modal', handler);
+                if (callback) callback();
+            });
+            instance.hide();
+        };
+        // ────────────────────────────────────────────────────────────────
     </script>
 </body>
 </html>

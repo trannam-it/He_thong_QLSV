@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../../includes/auth_check.php';
+authCheck(['super_admin', 'content_admin']);
 require_once __DIR__ . '/../layout/header.php';
 ?>
 
@@ -192,7 +194,7 @@ function loadYearStatistics() {
 // Load Faculty Sta{
             if (!r.ok) return r.text().then(text => { throw new Error(`HTTP ${r.status}: ${text}`); });
             return r.json();
-        }
+        
 function loadFacultyStatistics() {
     fetch(`${API_URL}?module=base_classes&action=getFacultyStatistics`)
         .then(r => r.json())

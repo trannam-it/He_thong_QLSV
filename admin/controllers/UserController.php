@@ -665,7 +665,9 @@ class UserController extends BaseController
                 ]);
             }
 
-            $this->logAudit('CREATE', 'users', $userId, null, $_POST);
+            // Log audit without exposing password
+            $safeData = array_diff_key($_POST, array_flip(['password', 'password_confirm', 'password_hash']));
+            $this->logAudit('CREATE', 'users', $userId, null, $safeData);
             return Response::success(['id' => $userId], 'User created', 201);
         }
 

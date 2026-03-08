@@ -1,6 +1,8 @@
 <?php
 $pageTitle = 'Quản lý Sinh viên';
 require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../../includes/auth_check.php';
+authCheck(['super_admin', 'content_admin']);
 require_once __DIR__ . '/../layout/header.php';
 ?>
 <style>
@@ -97,9 +99,9 @@ require_once __DIR__ . '/../layout/header.php';
                 <a href="/web_QLSV/admin/views/students/accounts.php" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-person-badge me-1"></i> Tài khoản
                 </a>
-                <a href="/web_QLSV/admin/views/students/enrollments.php" class="btn btn-outline-warning btn-sm">
+                <!-- <a href="/web_QLSV/admin/views/students/enrollments.php" class="btn btn-outline-warning btn-sm">
                     <i class="bi bi-journal-bookmark me-1"></i> Đăng ký học phần
-                </a>
+                </a> -->
                 <a href="/web_QLSV/admin/views/students/progress.php" class="btn btn-outline-success btn-sm">
                     <i class="bi bi-bar-chart-line me-1"></i> Tiến độ học tập
                 </a>
@@ -228,34 +230,12 @@ require_once __DIR__ . '/../layout/header.php';
                                     <label class="form-label">Khoa / Bộ môn</label>
                                     <select name="faculty_id" id="create_faculty" class="form-select" required>
                                         <option value="">-- Chọn khoa --</option>
-                                        <!-- populated by JS -->
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Ngành học</label>
-                                    <select name="major_id" id="create_major" class="form-select">
-                                        <option value="">-- Chọn ngành --</option>
-                                        <!-- populated by JS -->
                                     </select>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Lớp hành chính</label>
-                                    <select name="student_class_id" id="create_class" class="form-select">
+                                    <select name="base_class_id" id="create_base_class" class="form-select">
                                         <option value="">-- Chọn lớp --</option>
-                                        <!-- populated by JS -->
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Khóa học (K45, K46...)</label>
-                                    <input name="cohort" id="create_cohort" class="form-control" placeholder="K45">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Hệ đào tạo</label>
-                                    <select name="training_system" id="create_training" class="form-select">
-                                        <option value="Chính quy">Chính quy</option>
-                                        <option value="Vừa học vừa làm">Vừa học vừa làm</option>
-                                        <option value="Liên thông">Liên thông</option>
-                                        <option value="Khác">Khác</option>
                                     </select>
                                 </div>
                                 <div class="mb-3">
@@ -266,22 +246,6 @@ require_once __DIR__ . '/../layout/header.php';
                                         <option value="Dropped">Thôi học</option>
                                         <option value="Graduated">Tốt nghiệp</option>
                                     </select>
-                                </div>
-                            </div>
-                        </div>
-                        <hr>
-                        <h6>Thông tin khác</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Địa chỉ</label>
-                                    <textarea name="address" id="create_address" class="form-control" rows="2"></textarea>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Ảnh đại diện (URL)</label>
-                                    <input name="avatar" id="create_avatar" class="form-control" type="url">
                                 </div>
                             </div>
                         </div>
@@ -350,34 +314,12 @@ require_once __DIR__ . '/../layout/header.php';
                                     <label class="form-label">Khoa / Bộ môn</label>
                                     <select name="faculty_id" id="edit_faculty" class="form-select" required>
                                         <option value="">-- Chọn khoa --</option>
-                                        <!-- populated by JS -->
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Ngành học</label>
-                                    <select name="major_id" id="edit_major" class="form-select">
-                                        <option value="">-- Chọn ngành --</option>
-                                        <!-- populated by JS -->
                                     </select>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Lớp hành chính</label>
-                                    <select name="student_class_id" id="edit_class" class="form-select">
+                                    <select name="base_class_id" id="edit_base_class" class="form-select">
                                         <option value="">-- Chọn lớp --</option>
-                                        <!-- populated by JS -->
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Khóa học (K45, K46...)</label>
-                                    <input name="cohort" id="edit_cohort" class="form-control" placeholder="K45">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Hệ đào tạo</label>
-                                    <select name="training_system" id="edit_training" class="form-select">
-                                        <option value="Chính quy">Chính quy</option>
-                                        <option value="Vừa học vừa làm">Vừa học vừa làm</option>
-                                        <option value="Liên thông">Liên thông</option>
-                                        <option value="Khác">Khác</option>
                                     </select>
                                 </div>
                                 <div class="mb-3">
@@ -388,22 +330,6 @@ require_once __DIR__ . '/../layout/header.php';
                                         <option value="Dropped">Thôi học</option>
                                         <option value="Graduated">Tốt nghiệp</option>
                                     </select>
-                                </div>
-                            </div>
-                        </div>
-                        <hr>
-                        <h6>Thông tin khác</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Địa chỉ</label>
-                                    <textarea name="address" id="edit_address" class="form-control" rows="2"></textarea>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Ảnh đại diện (URL)</label>
-                                    <input name="avatar" id="edit_avatar" class="form-control" type="url">
                                 </div>
                             </div>
                         </div>
@@ -458,6 +384,7 @@ require_once __DIR__ . '/../layout/header.php';
 const apiUrl = '/web_QLSV/admin/api/router.php';
 let students = [];
 let faculties = [];
+let baseClasses = [];
 let currentPage = 1;
 let currentSearch = '';
 const pageLimit = 15;
@@ -525,12 +452,29 @@ async function fetchFaculties() {
     if (j.success) faculties = j.data;
 }
 
+async function fetchBaseClasses() {
+    const res = await fetch(`${apiUrl}?module=base_classes&action=index&page=1&limit=500`);
+    const j = await res.json();
+    if (j.success) baseClasses = j.data;
+}
+
 function populateFacultySelects() {
     document.querySelectorAll('[name="faculty_id"]').forEach(sel => {
         const old = sel.value;
         sel.innerHTML = '<option value="">-- Chọn khoa --</option>';
         faculties.forEach(f => {
             sel.innerHTML += `<option value="${f.faculty_id}">${f.faculty_name}</option>`;
+        });
+        if (old) sel.value = old;
+    });
+}
+
+function populateBaseClassSelects() {
+    document.querySelectorAll('[name="base_class_id"]').forEach(sel => {
+        const old = sel.value;
+        sel.innerHTML = '<option value="">-- Chọn lớp --</option>';
+        baseClasses.forEach(bc => {
+            sel.innerHTML += `<option value="${bc.base_class_id}">${bc.base_class_name}</option>`;
         });
         if (old) sel.value = old;
     });
@@ -731,12 +675,17 @@ function renderStudents() {
                     : '<span class="badge bg-secondary">✗ Không</span>'}
             </td>
             <td class="text-center">
-                <button class="btn btn-sm btn-info" onclick="openEdit(${s.student_id})">
-                    <i class="bi bi-pencil"></i> Sửa
-                </button>
-                <button class="btn btn-sm btn-warning" onclick="openStatus(${s.student_id})">
-                    Trạng thái
-                </button>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" onclick="openEdit(${s.student_id})" title="Sửa">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="openStatus(${s.student_id})" title="Trạng thái">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="deleteStudent(${s.student_id})" title="Xóa">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
             </td>
         </tr>`;
     });
@@ -744,7 +693,7 @@ function renderStudents() {
 
 
 /* ================= ACTIONS ================= */
-async function openEdit(id) {
+window.openEdit = async function(id) {
     const res = await fetch(`${apiUrl}?module=students&action=show&id=${id}`);
     const j = await res.json();
     if (!j.success) return showAlert(j.message, 'danger');
@@ -760,11 +709,12 @@ async function openEdit(id) {
     edit_birth.value = s.birth_date;
     edit_faculty.value = s.faculty_id;
     edit_status.value = s.status;
+    document.getElementById('edit_base_class').value = s.base_class_id || '';
 
     new bootstrap.Modal(editModal).show();
 }
 
-function openStatus(id) {
+window.openStatus = function(id) {
     status_student_id.value = id;
     status_new_status.value = '';
     new bootstrap.Modal(statusModal).show();
@@ -786,6 +736,100 @@ document.getElementById('searchInput').addEventListener('input', e => {
 // });
 
 /* ================= SUBMIT ================= */
+
+// Create student
+document.getElementById('createSubmitBtn').onclick = async () => {
+    const form = document.getElementById('createForm');
+    const fields = ['create_code','create_first','create_last','create_email','create_gender','create_birth','create_faculty','create_status'];
+    for (const f of fields) {
+        const el = document.getElementById(f);
+        if (el && el.required && !el.value.trim()) {
+            el.focus();
+            showAlert('Vui lòng điền đầy đủ thông tin bắt buộc', 'warning');
+            return;
+        }
+    }
+    const params = new URLSearchParams({
+        module: 'students',
+        action: 'store',
+        student_code:   document.getElementById('create_code').value,
+        first_name:     document.getElementById('create_first').value,
+        last_name:      document.getElementById('create_last').value,
+        email:          document.getElementById('create_email').value,
+        phone:          document.getElementById('create_phone').value,
+        gender:         document.getElementById('create_gender').value,
+        birth_date:     document.getElementById('create_birth').value,
+        faculty_id:     document.getElementById('create_faculty').value,
+        base_class_id:  document.getElementById('create_base_class').value,
+        status:         document.getElementById('create_status').value,
+    });
+    try {
+        const res = await fetch(apiUrl, { method: 'POST', body: params });
+        const j = await res.json();
+        if (j.success) {
+            showAlert('Thêm sinh viên thành công');
+            bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
+            document.getElementById('createForm').reset();
+            fetchStudents(currentPage, currentSearch);
+        } else {
+            showAlert(j.message || 'Lỗi khi thêm', 'danger');
+        }
+    } catch (err) {
+        showAlert('Lỗi mạng', 'danger');
+    }
+};
+
+// Edit student
+document.getElementById('editSubmitBtn').onclick = async () => {
+    const id = edit_id.value;
+    const params = new URLSearchParams({
+        module: 'students',
+        action: 'update',
+        id,
+        student_code:   edit_code.value,
+        first_name:     edit_first.value,
+        last_name:      edit_last.value,
+        email:          edit_email.value,
+        phone:          edit_phone.value,
+        gender:         edit_gender.value,
+        birth_date:     edit_birth.value,
+        faculty_id:     edit_faculty.value,
+        base_class_id:  document.getElementById('edit_base_class').value,
+        status:         edit_status.value,
+    });
+    try {
+        const res = await fetch(apiUrl, { method: 'POST', body: params });
+        const j = await res.json();
+        if (j.success) {
+            showAlert('Cập nhật thành công');
+            bootstrap.Modal.getInstance(editModal).hide();
+            fetchStudents(currentPage, currentSearch);
+        } else {
+            showAlert(j.message || 'Lỗi khi cập nhật', 'danger');
+        }
+    } catch (err) {
+        showAlert('Lỗi mạng', 'danger');
+    }
+};
+
+// Delete student
+window.deleteStudent = async function(id) {
+    if (!confirm('Bạn có chắc muốn xóa sinh viên này?')) return;
+    const params = new URLSearchParams({ module: 'students', action: 'delete', id });
+    try {
+        const res = await fetch(apiUrl, { method: 'POST', body: params });
+        const j = await res.json();
+        if (j.success) {
+            showAlert('Đã xóa sinh viên');
+            fetchStudents(currentPage, currentSearch);
+        } else {
+            showAlert(j.message || 'Lỗi khi xóa', 'danger');
+        }
+    } catch (err) {
+        showAlert('Lỗi mạng', 'danger');
+    }
+};
+
 document.getElementById('statusSubmitBtn').onclick = async () => {
     if (!status_new_status.value) {
         showAlert('Vui lòng chọn trạng thái', 'warning');
@@ -814,7 +858,9 @@ document.getElementById('statusSubmitBtn').onclick = async () => {
 /* ================= INIT ================= */
 (async () => {
     await fetchFaculties();
+    await fetchBaseClasses();
     populateFacultySelects();
+    populateBaseClassSelects();
     fetchStudents();
 })();
 

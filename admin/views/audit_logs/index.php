@@ -1,17 +1,10 @@
 <?php
-session_start();
-// $pageTitle = 'Quản Lý Người Dùng';
-require_once __DIR__ . '/../layout/header.php';
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../../includes/auth_check.php';
 
 authCheck(['super_admin']);
-?>
 
-
-<?php
-// session_start();
-// require_once '../config/config.php';
+$pageTitle = 'Audit Log - Lich su he thong';
 
 /* ===============================
    RBAC – chỉ Admin
@@ -28,6 +21,11 @@ $userFilter   = $_GET['username'] ?? '';
 $actionFilter = $_GET['action'] ?? '';
 $dateFrom     = $_GET['from'] ?? '';
 $dateTo       = $_GET['to'] ?? '';
+
+$allowedActions = ['LOGIN', 'INSERT', 'UPDATE', 'DELETE'];
+if ($actionFilter !== '' && !in_array($actionFilter, $allowedActions, true)) {
+    $actionFilter = '';
+}
 
 $sql = "
     SELECT audit_id, username, action, table_name, record_id,
@@ -69,13 +67,11 @@ $stmt = $conn->prepare($sql);
 if ($params) $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
+
+$logs = $result->fetch_all(MYSQLI_ASSOC);
 ?>
 
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<title>Audit Log - Lịch sử hệ thống</title>
+<?php require_once __DIR__ . '/../layout/header.php'; ?>
 
 <style>
 body {
@@ -134,6 +130,7 @@ tr:hover {
 .badge.INSERT { background: #27ae60; }
 .badge.UPDATE { background: #f39c12; }
 .badge.DELETE { background: #c0392b; }
+.badge.OTHER { background: #7f8c8d; }
 
 .ip {
     font-family: monospace;
@@ -185,9 +182,6 @@ function closeDetail(id) {
 }
 </script>
 
-</head>
-<body>
-
 <h1>📋 Lịch sử hoạt động hệ thống (Audit Log)</h1>
 
 <div class="filter-box">
@@ -199,7 +193,7 @@ function closeDetail(id) {
     Action:
     <select name="action">
         <option value="">-- Tất cả --</option>
-        <?php foreach (['LOGIN','INSERT','UPDATE','DELETE'] as $a): ?>
+        <?php foreach ($allowedActions as $a): ?>
             <option value="<?= $a ?>" <?= $actionFilter==$a?'selected':'' ?>><?= $a ?></option>
         <?php endforeach; ?>
     </select>
@@ -211,7 +205,7 @@ function closeDetail(id) {
     <input type="date" name="to" value="<?= htmlspecialchars($dateTo) ?>">
 
     <button>Lọc</button>
-    <a href="audit_log.php">Reset</a>
+    <a href="index.php">Reset</a>
 </form>
 </div>
 
@@ -230,45 +224,53 @@ function closeDetail(id) {
 </thead>
 <tbody>
 
-<?php while ($row = $result->fetch_assoc()): ?>
+<?php foreach ($logs as $row): ?>
+<?php
+    $rowAction = strtoupper((string)($row['action'] ?? ''));
+    $badgeClass = in_array($rowAction, $allowedActions, true) ? $rowAction : 'OTHER';
+?>
 <tr>
-    <td><?= $row['created_at'] ?></td>
-    <td><?= htmlspecialchars($row['username']) ?></td>
-    <td><span class="badge <?= strtoupper($row['action']) ?>">
-        <?= strtoupper($row['action']) ?>
+    <td><?= htmlspecialchars($row['created_at'] ?? '') ?></td>
+    <td><?= htmlspecialchars($row['username'] ?? '') ?></td>
+    <td><span class="badge <?= $badgeClass ?>">
+        <?= htmlspecialchars($rowAction) ?>
     </span></td>
-    <td><?= htmlspecialchars($row['table_name']) ?></td>
-    <td><?= htmlspecialchars($row['record_id']) ?></td>
-    <td class="ip"><?= htmlspecialchars($row['ip_address']) ?></td>
+    <td><?= htmlspecialchars($row['table_name'] ?? '') ?></td>
+    <td><?= htmlspecialchars($row['record_id'] ?? '') ?></td>
+    <td class="ip"><?= htmlspecialchars($row['ip_address'] ?? '') ?></td>
     <td>
-        <span class="detail" onclick="showDetail(<?= $row['audit_id'] ?>)">Xem</span>
+        <span class="detail" onclick="showDetail(<?= (int)($row['audit_id'] ?? 0) ?>)">Xem</span>
     </td>
 </tr>
-
-<!-- MODAL DETAIL -->
-<div class="modal" id="modal-<?= $row['audit_id'] ?>">
-<div class="modal-content">
-<span class="close" onclick="closeDetail(<?= $row['audit_id'] ?>)">✖</span>
-
-<h3>🔍 Chi tiết Audit Log</h3>
-
-<b>Dữ liệu cũ:</b>
-<pre><?= htmlspecialchars($row['old_data'] ?? 'NULL') ?></pre>
-
-<b>Dữ liệu mới:</b>
-<pre><?= htmlspecialchars($row['new_data'] ?? 'NULL') ?></pre>
-
-</div>
-</div>
-
-<?php endwhile; ?>
+<?php endforeach; ?>
 
 </tbody>
 </table>
 </div>
 
+<?php foreach ($logs as $row): ?>
+    <div class="modal" id="modal-<?= (int)($row['audit_id'] ?? 0) ?>">
+        <div class="modal-content">
+            <span class="close" onclick="closeDetail(<?= (int)($row['audit_id'] ?? 0) ?>)">✖</span>
+
+            <h3>🔍 Chi tiết Audit Log</h3>
+
+            <b>Dữ liệu cũ:</b>
+            <pre><?= htmlspecialchars($row['old_data'] ?? 'NULL') ?></pre>
+
+            <b>Dữ liệu mới:</b>
+            <pre><?= htmlspecialchars($row['new_data'] ?? 'NULL') ?></pre>
+
+        </div>
+    </div>
+<?php endforeach; ?>
+
+<?php require_once __DIR__ . '/../layout/footer.php'; ?>
 </body>
+
 </html>
+
+
 
 
 

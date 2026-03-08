@@ -1,82 +1,74 @@
 <?php
 /**
- * Base Controller
- * Parent class for all controllers
+ * Base Controller - Dynamic RBAC
+ * Parent class for all API controllers
  */
-// require_once __DIR__ . '/../../../config/config.php';
-require_once __DIR__ . '/../../includes/audit_log.php';
-if (!function_exists('writeAuditLog')) {
-    die('writeAuditLog NOT FOUND');
+require_once __DIR__ . '/../../includes/auth_check.php';
+
+if (file_exists(__DIR__ . '/../../includes/audit_log.php')) {
+    require_once __DIR__ . '/../../includes/audit_log.php';
 }
 
 class BaseController
 {
-    protected $db;
-    protected $auth;
-    protected $validator;
-    protected $conn;
+    protected DatabaseHelper $db;
+    protected Auth           $auth;
+    protected Validator      $validator;
+    protected mysqli         $conn;
 
-    public function __construct($connection)
+    public function __construct(mysqli $connection, ?Auth $authInstance = null)
     {
-        $this->conn = $connection;
-        $this->db = new Database($connection);
-        $this->auth = new Auth($connection);
+        $this->conn      = $connection;
+        $this->db        = new DatabaseHelper($connection);
+        $this->auth      = $authInstance ?? new Auth($connection);
         $this->validator = new Validator();
     }
 
     /**
-     * Call method safely
+     * Gọi action an toàn
      */
-    public function call($action, $params = [])
+    public function call(string $action, array $params = [])
     {
         if (method_exists($this, $action)) {
             return call_user_func_array([$this, $action], $params);
         }
-        return Response::error('Action not found');
+        return Response::error('Action not found', 404);
     }
 
     /**
-     * Get pagination info
+     * Phân trang
      */
-    // protected function getPagination()
-    // {
-    //     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-    //     $limit = isset($_GET['limit']) ? min(100, (int)$_GET['limit']) : 20;
-    //     $offset = ($page - 1) * $limit;
-        
-    //     return compact('page', 'limit', 'offset');
-    // }
-
-    protected function getPagination()
+    protected function getPagination(): array
     {
-        $page  = max(1, (int)($_GET['page'] ?? 1));
-        $limit = (int)($_GET['limit'] ?? 10);
+        $page  = max(1, (int)($_GET['page']  ?? 1));
+        $limit = (int)($_GET['limit'] ?? 20);
+        if ($limit < 1)   $limit = 20;
+        if ($limit > 100) $limit = 100;
 
-        // 🔒 Giới hạn an toàn
-        if ($limit < 1) $limit = 10;
-        if ($limit > 50) $limit = 50;
-
-        $offset = ($page - 1) * $limit;
-
-        return compact('page', 'limit', 'offset');
+        return [
+            'page'   => $page,
+            'limit'  => $limit,
+            'offset' => ($page - 1) * $limit
+        ];
     }
 
-
     /**
-     * Log audit
+     * Ghi audit log
      */
-    protected function logAudit($action, $table, $recordId, $oldData = null, $newData = null)
+    protected function logAudit(string $action, string $table, int $recordId, ?array $old, ?array $new): void
     {
-        writeAuditLog(
-            $this->conn,
-            $this->auth->getId(),
-            $this->auth->getUsername(),
-            $action,
-            $table,
-            $recordId,
-            $oldData ? json_encode($oldData) : null,
-            $newData ? json_encode($newData) : null
-        );
+        $userId   = $this->auth->getId()       ?? 0;
+        $username = $this->auth->getUsername() ?? 'system';
+        $ip       = $_SERVER['REMOTE_ADDR']    ?? '0.0.0.0';
+        $oldJson  = $old ? json_encode($old,  JSON_UNESCAPED_UNICODE) : null;
+        $newJson  = $new ? json_encode($new,  JSON_UNESCAPED_UNICODE) : null;
+
+        $stmt = $this->conn->prepare("
+            INSERT INTO audit_logs
+                (user_id, username, action, table_name, record_id, old_data, new_data, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->bind_param('isssisss', $userId, $username, $action, $table, $recordId, $oldJson, $newJson, $ip);
+        $stmt->execute();
     }
 }
-?>

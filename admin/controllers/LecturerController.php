@@ -5,66 +5,6 @@
  */
 class LecturerController extends BaseController
 {
-    // public function index()
-    // {
-    //     $this->auth->requirePermission('manage_lecturers');
-        
-    //     $pagination = $this->getPagination();
-    //     $search = isset($_GET['search']) ? '%' . $_GET['search'] . '%' : null;
-        
-    //     $where = '';
-    //     $params = [];
-        
-    //     if ($search) {
-    //         // $where = '(lecturer_code LIKE ? OR first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)';
-    //         $conditions = [];
-    //         $params = [];
-
-    //         if (!empty($_GET['search'])) {
-    //             $search = '%' . $_GET['search'] . '%';
-    //             $conditions[] = '(lecturer_code LIKE ? OR first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)';
-    //             $params = array_merge($params, [$search, $search, $search, $search]);
-    //         }
-
-    //         if (!empty($_GET['faculty_id'])) {
-    //             $conditions[] = 'l.faculty_id = ?';
-    //             $params[] = $_GET['faculty_id'];
-    //         }
-
-    //         $where = '';
-    //         if (!empty($conditions)) {
-    //             $where = 'WHERE ' . implode(' AND ', $conditions);
-    //         }
-
-    //         $params = [$search, $search, $search, $search];
-    //     }
-        
-    //     // $query = "SELECT l.*, f.faculty_name FROM lecturers l
-    //     //           LEFT JOIN faculties f ON l.faculty_id = f.faculty_id";
-
-    //     $query = "SELECT l.*, f.faculty_name FROM lecturers l
-    //       LEFT JOIN faculties f ON l.faculty_id = f.faculty_id
-    //       $where
-    //       ORDER BY l.lecturer_id DESC
-    //       LIMIT ? OFFSET ?";
-
-        
-    //     if ($where) $query .= " WHERE $where";
-    //     $query .= " ORDER BY l.lecturer_id DESC LIMIT ? OFFSET ?";
-        
-    //     $allParams = array_merge($params, [$pagination['limit'], $pagination['offset']]);
-    //     $lecturers = $this->db->query($query, $allParams)->fetch_all(MYSQLI_ASSOC);
-        
-    //     // $countQuery = "SELECT COUNT(*) as total FROM lecturers";
-    //     $countQuery = "SELECT COUNT(*) as total FROM lecturers l $where";
-
-    //     if ($where) $countQuery .= " WHERE $where";
-        
-    //     $countParams = array_values($params);
-    //     $total = $this->db->query($countQuery, $countParams)->fetch_assoc()['total'];
-
-    //     return Response::paginate($lecturers, $total, $pagination['page'], $pagination['limit']);
-    // }
 
     public function index()
 {
@@ -89,6 +29,12 @@ class LecturerController extends BaseController
     if (!empty($_GET['faculty_id'])) {
         $conditions[] = 'l.faculty_id = ?';
         $params[] = $_GET['faculty_id'];
+    }
+
+    // Học vị filter
+    if (!empty($_GET['degree'])) {
+        $conditions[] = 'l.degree = ?';
+        $params[] = $_GET['degree'];
     }
 
     // Ghép WHERE
@@ -156,42 +102,104 @@ class LecturerController extends BaseController
     }
 
     public function store()
+{
+    $this->auth->requirePermission('manage_lecturers');
+
+    $rules = [
+        'first_name' => 'required',
+        'last_name'  => 'required',
+        'email'      => 'required|email',
+        'degree'     => 'required',
+        'faculty_id' => 'required|numeric'
+    ];
+
+    if (!$this->validator->validate($_POST, $rules)) {
+        return Response::error('Validation failed', 400, $this->validator->getErrors());
+    }
+
+    // ====== TỰ ĐỘNG TẠO MÃ GV ======
+    $last = $this->db->query("
+        SELECT lecturer_code
+        FROM lecturers
+        ORDER BY lecturer_id DESC
+        LIMIT 1
+    ")->fetch_assoc();
+
+    $num = 0;
+    if ($last && preg_match('/(\d+)$/', $last['lecturer_code'], $m)) {
+        $num = intval($m[1]);
+    }
+
+    $num++;
+    $lecturer_code = 'GV' . str_pad($num, 3, '0', STR_PAD_LEFT);
+
+    // ====== INSERT LECTURER ======
+    $lecturerId = $this->db->insert('lecturers', [
+        'lecturer_code' => $lecturer_code,
+        'first_name'    => $_POST['first_name'],
+        'last_name'     => $_POST['last_name'],
+        'email'         => $_POST['email'],
+        'phone'         => $_POST['phone'] ?? null,
+        'degree'        => $_POST['degree'],
+        'faculty_id'    => $_POST['faculty_id']
+    ]);
+
+    if (!$lecturerId) {
+        return Response::error('Không thể tạo giảng viên', 500);
+    }
+
+    // ====== TẠO USER TƯƠNG ỨNG ======
+    $username = $lecturer_code;
+    $defaultPassword = '123456';
+
+    $userId = $this->db->insert('users', [
+        'username'      => $username,
+        'email'         => $_POST['email'],
+        'password_hash' => password_hash($defaultPassword, PASSWORD_BCRYPT),
+        'is_active'     => 1
+    ]);
+
+    if ($userId) {
+
+        // Gán user vào lecturer
+        $this->db->update('lecturers',
+            ['user_id' => $userId],
+            'lecturer_id = ?',
+            [$lecturerId]
+        );
+
+        // Gán role teacher
+        $role = $this->db->selectOne('roles', 'code = ?', ['teacher']);
+        if ($role) {
+            $this->db->insert('user_roles', [
+                'user_id' => $userId,
+                'role_id' => $role['id']
+            ]);
+        }
+    }
+
+    return Response::success([
+        'lecturer_id' => $lecturerId,
+        'username'    => $username,
+        'password'    => $defaultPassword
+    ], 'Tạo giảng viên thành công', 201);
+}
+
+
+    /**
+     * Return next lecturer code (GV###)
+     */
+    public function nextCode()
     {
         $this->auth->requirePermission('manage_lecturers');
-        
-        $rules = [
-            'lecturer_code' => 'required|min:3',
-            'first_name' => 'required',
-            'last_name' => 'required',
-            'email' => 'required|email',
-            'degree' => 'required',
-            'faculty_id' => 'required|numeric'
-        ];
-
-        if (!$this->validator->validate($_POST, $rules)) {
-            return Response::error('Validation failed', 400, $this->validator->getErrors());
+        $last = $this->db->query("SELECT lecturer_code FROM lecturers ORDER BY lecturer_id DESC LIMIT 1")->fetch_assoc();
+        $num = 0;
+        if ($last && preg_match('/(\d+)$/', $last['lecturer_code'], $m)) {
+            $num = intval($m[1]);
         }
-
-        if ($this->db->count('lecturers', 'lecturer_code = ?', [$_POST['lecturer_code']]) > 0) {
-            return Response::error('Lecturer code already exists', 400);
-        }
-
-        $lecturerId = $this->db->insert('lecturers', [
-            'lecturer_code' => $_POST['lecturer_code'],
-            'first_name' => $_POST['first_name'],
-            'last_name' => $_POST['last_name'],
-            'email' => $_POST['email'],
-            'phone' => $_POST['phone'] ?? null,
-            'degree' => $_POST['degree'],
-            'faculty_id' => $_POST['faculty_id']
-        ]);
-
-        if ($lecturerId) {
-            $this->logAudit('CREATE', 'lecturers', $lecturerId, null, $_POST);
-            return Response::success(['id' => $lecturerId], 'Lecturer created', 201);
-        }
-
-        return Response::error('Failed to create lecturer', 500);
+        $num++;
+        $next = 'GV' . str_pad($num, 3, '0', STR_PAD_LEFT);
+        return Response::success(['next_code' => $next]);
     }
 
     public function update()
@@ -384,4 +392,148 @@ class LecturerController extends BaseController
         return Response::success($subjects ?? []);
     }
 }
+
+// class LecturerController extends BaseController
+// {
+//     public function index()
+//     {
+//         $this->auth->requirePermission('manage_lecturers');
+
+//         $pagination = $this->getPagination();
+
+//         $conditions = [];
+//         $params = [];
+
+//         if (!empty($_GET['search'])) {
+//             $search = '%' . $_GET['search'] . '%';
+//             $conditions[] = '(l.lecturer_code LIKE ?
+//                               OR l.first_name LIKE ?
+//                               OR l.last_name LIKE ?
+//                               OR l.email LIKE ?)';
+//             $params = array_merge($params, [$search,$search,$search,$search]);
+//         }
+
+//         if (!empty($_GET['faculty_id'])) {
+//             $conditions[] = 'l.faculty_id = ?';
+//             $params[] = $_GET['faculty_id'];
+//         }
+
+//         if (!empty($_GET['degree'])) {
+//             $conditions[] = 'l.degree = ?';
+//             $params[] = $_GET['degree'];
+//         }
+
+//         $where = $conditions ? 'WHERE '.implode(' AND ',$conditions) : '';
+
+//         $query = "
+//             SELECT l.*, f.faculty_name
+//             FROM lecturers l
+//             LEFT JOIN faculties f ON l.faculty_id = f.faculty_id
+//             $where
+//             ORDER BY l.lecturer_id DESC
+//             LIMIT ? OFFSET ?
+//         ";
+
+//         $dataParams = array_merge($params,[
+//             $pagination['limit'],
+//             $pagination['offset']
+//         ]);
+
+//         $lecturers = $this->db
+//             ->query($query,$dataParams)
+//             ->fetch_all(MYSQLI_ASSOC);
+
+//         $total = $this->db
+//             ->query("SELECT COUNT(*) as total FROM lecturers l $where",$params)
+//             ->fetch_assoc()['total'];
+
+//         return Response::paginate(
+//             $lecturers,
+//             $total,
+//             $pagination['page'],
+//             $pagination['limit']
+//         );
+//     }
+
+//     public function getNextCode()
+//     {
+//         $last = $this->db->query("
+//             SELECT lecturer_code
+//             FROM lecturers
+//             ORDER BY lecturer_id DESC
+//             LIMIT 1
+//         ")->fetch_assoc();
+
+//         if (!$last) {
+//             return Response::success(['code'=>'GV001']);
+//         }
+
+//         $number = intval(substr($last['lecturer_code'],2)) + 1;
+//         $newCode = 'GV'.str_pad($number,3,'0',STR_PAD_LEFT);
+
+//         return Response::success(['code'=>$newCode]);
+//     }
+
+//     public function store()
+//     {
+//         $this->auth->requirePermission('manage_lecturers');
+
+//         $lecturerId = $this->db->insert('lecturers',[
+//             'lecturer_code'=>$_POST['lecturer_code'],
+//             'first_name'=>$_POST['first_name'],
+//             'last_name'=>$_POST['last_name'],
+//             'email'=>$_POST['email'],
+//             'phone'=>$_POST['phone'] ?? null,
+//             'degree'=>$_POST['degree'],
+//             'faculty_id'=>$_POST['faculty_id']
+//         ]);
+
+//         if ($lecturerId) {
+
+//             // TỰ ĐỘNG TẠO USER
+//             $this->db->insert('users',[
+//                 'username'=>$_POST['lecturer_code'],
+//                 'password'=>password_hash('123456',PASSWORD_DEFAULT),
+//                 'role'=>'lecturer',
+//                 'reference_id'=>$lecturerId
+//             ]);
+
+//             return Response::success(null,'Lecturer created');
+//         }
+
+//         return Response::error('Create failed',500);
+//     }
+
+//     public function statistics()
+//     {
+//         $byFaculty = $this->db->query("
+//             SELECT f.faculty_name, COUNT(*) total
+//             FROM lecturers l
+//             LEFT JOIN faculties f ON l.faculty_id = f.faculty_id
+//             GROUP BY f.faculty_name
+//         ")->fetch_all(MYSQLI_ASSOC);
+
+//         $byDegree = $this->db->query("
+//             SELECT degree, COUNT(*) total
+//             FROM lecturers
+//             GROUP BY degree
+//         ")->fetch_all(MYSQLI_ASSOC);
+
+//         $subjects = $this->db->query("
+//             SELECT l.lecturer_code,
+//                    CONCAT(l.first_name,' ',l.last_name) name,
+//                    COUNT(DISTINCT c.subject_id) total_subjects
+//             FROM lecturers l
+//             LEFT JOIN classes c ON l.lecturer_id = c.lecturer_id
+//             GROUP BY l.lecturer_id
+//         ")->fetch_all(MYSQLI_ASSOC);
+
+//         return Response::success([
+//             'byFaculty'=>$byFaculty,
+//             'byDegree'=>$byDegree,
+//             'subjects'=>$subjects
+//         ]);
+//     }
+// }
+
 ?>

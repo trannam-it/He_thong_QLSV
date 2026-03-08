@@ -1,12 +1,16 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../core/AppRouter.php';
 require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../includes/admin_helper.php';
 include __DIR__ . '/../includes/alert.php';
 
-authCheck(['super_admin', 'content_admin']);
+// Guard: chỉ admin được vào
+AppRouter::guardModule(['super_admin', 'content_admin']);
 
 $pageTitle = 'Quản lý Khoa';
 $userId = $_SESSION['user_id'];

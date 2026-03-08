@@ -2,436 +2,422 @@
 $pageTitle = "Quản lý Giảng viên";
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../layout/header.php';
+
+// Lấy danh sách học vị từ định nghĩa ENUM trong DB (không in HTML trực tiếp)
+$degrees = [];
+if (isset($conn)) {
+    $res = $conn->query("SHOW COLUMNS FROM lecturers LIKE 'degree'");
+    if ($res && $row = $res->fetch_assoc()) {
+        $type = $row['Type']; // ví dụ: enum('Bachelor','Master','PhD')
+        if (preg_match("/^enum\\((.*)\\)$/", $type, $m)) {
+            $vals = explode(',', $m[1]);
+            foreach ($vals as $v) {
+                $degrees[] = trim($v, "'\"");
+            }
+        }
+    }
+}
 ?>
 
 <div class="container-fluid">
 
-    <!-- ===== PAGE HEADER ===== -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="fw-bold mb-1">
-                <i class="bi bi-person-badge-fill text-primary"></i>
-                Quản lý Giảng viên
-            </h3>
-            <small class="text-muted">
-                Quản lý thông tin, phân công môn học và lớp giảng dạy
-            </small>
-        </div>
+<!-- ================= HEADER ================= -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold">
+            <i class="bi bi-person-workspace text-primary"></i>
+            Quản lý Giảng viên
+        </h3>
+        <small class="text-muted">Quản lý thông tin và thống kê giảng viên</small>
+    </div>
 
-        <button class="btn btn-primary shadow-sm"
-                data-bs-toggle="modal"
-                data-bs-target="#createModal">
-            <i class="bi bi-plus-circle me-1"></i> Thêm Giảng viên
+        <a href="<?= BASE_URL ?>/admin/views/lecturers/statistics.php" 
+            class="btn btn-success">
+            <i class="bi bi-bar-chart"></i> Thống kê
+        </a>
+
+
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+            <i class="bi bi-plus-circle"></i> Thêm Giảng viên mới
         </button>
     </div>
+</div>
 
-    <!-- ===== QUICK STATS ===== -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-body d-flex align-items-center">
-                    <div class="bg-primary text-white rounded-circle p-3 me-3">
-                        <i class="bi bi-people-fill fs-4"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-muted">Tổng Giảng viên</h6>
-                        <h4 class="fw-bold mb-0" id="totalLecturers">0</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-body d-flex align-items-center">
-                    <div class="bg-success text-white rounded-circle p-3 me-3">
-                        <i class="bi bi-book-fill fs-4"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-muted">Đang giảng dạy</h6>
-                        <h4 class="fw-bold mb-0">--</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-body d-flex align-items-center">
-                    <div class="bg-info text-white rounded-circle p-3 me-3">
-                        <i class="bi bi-building fs-4"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-muted">Số Khoa</h6>
-                        <h4 class="fw-bold mb-0" id="totalFaculties">--</h4>
-                    </div>
-                </div>
+<!-- ================= QUICK STATS ================= -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Tổng Giảng viên</h6>
+                <h3 id="totalLecturers" class="fw-bold text-primary">0</h3>
             </div>
         </div>
     </div>
 
-    <!-- ===== TABLE CARD ===== -->
-    <div class="card shadow-sm border-0">
-
-        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-                <i class="bi bi-list-ul me-2 text-primary"></i>
-                <strong>Danh sách Giảng viên</strong>
-            </div>
-            <select id="facultyFilter"
-                    class="form-select form-select-sm"
-                    style="width:200px;">
-                <option value="">-- Tất cả khoa --</option>
-            </select>
-
-
-            <div class="d-flex gap-2">
-                <input type="text"
-                       id="searchInput"
-                       class="form-control form-control-sm"
-                       style="width: 250px;"
-                       placeholder="Tìm theo tên, mã...">
-            </div>
-
-        </div>
-
-        <div class="card-body">
-            <div id="alertArea"></div>
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle" id="lecturersTable">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Mã GV</th>
-                            <th>Họ Tên</th>
-                            <th>Email</th>
-                            <th>Khoa</th>
-                            <th>Học vị</th>
-                            <th class="text-center">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lecturersBody">
-                        <!-- JS render -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    <!-- <nav>
-        <ul class="pagination justify-content-center mt-3" id="pagination"></ul>
-    </nav> -->
-
-        <div class="card-footer bg-white">
-            <nav class="d-flex justify-content-end">
-            <ul class="pagination pagination-sm mb-0" id="pagination">
-                <!-- JS render -->
-            </ul>
-        </nav>
-
-    </div>
-
-     <div class="modal fade" id="assignClassesModal" tabindex="-1">
-        <!-- <div class="modal fade" id="createForm" tabindex="-1">  -->
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Gán Lớp cho Giảng viên</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="assignClassesForm">
-                    <div class="modal-body">
-                        <input type="hidden" id="assignClasses_lecturer_id">
-                        <div class="mb-3">
-                            <label class="form-label">Chọn Lớp</label>
-                            <div id="classesCheckboxes" style="max-height: 400px; overflow-y: auto;">
-                                <!-- populated by JS -->
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                        <button type="submit" class="btn btn-primary">Gán</button>
-                    </div>
-                </form>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Đang giảng dạy</h6>
+                <h3 id="teachingCount" class="fw-bold text-success">0</h3>
             </div>
         </div>
     </div>
 
-    <!-- ===== MODALS ===== -->
- <!-- Create Modal -->
-    <div class="modal fade" id="createModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Thêm Giảng viên</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="createForm">
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6>Thông tin cá nhân</h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Mã giảng viên</label>
-                                    <input name="lecturer_code" id="create_code" class="form-control" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Họ</label>
-                                    <input name="first_name" id="create_first" class="form-control" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Tên</label>
-                                    <input name="last_name" id="create_last" class="form-control" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Email</label>
-                                    <input name="email" id="create_email" type="email" class="form-control" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Điện thoại</label>
-                                    <input name="phone" id="create_phone" class="form-control">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>Thông tin chuyên môn</h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Học vị</label>
-                                    <select name="degree" id="create_degree" class="form-select" required>
-                                        <option value="">-- Chọn --</option>
-                                        <option value="Bachelor">Cử nhân</option>
-                                        <option value="Master">Thạc sĩ</option>
-                                        <option value="PhD">Tiến sĩ</option>
-                                        <option value="Professor">Giáo sư</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Khoa / Bộ môn</label>
-                                    <!-- <select name="faculty_id" id="create_faculty" class="form-select" required>
-                                        <option value="">-- Chọn khoa --</option>
-                
-                                    </select> -->
-
-                                        <select name="faculty_id"
-                                                id="create_faculty"
-                                                class="form-select"
-                                                required>
-                                            <option value="">-- Chọn khoa --</option>
-                                        </select>
-
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                        <button type="submit" class="btn btn-primary">Tạo</button>
-                    </div>
-                </form>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Đang công tác</h6>
+                <h3 id="activeCount" class="fw-bold text-info">0</h3>
             </div>
         </div>
     </div>
 
-   <!-- <nav>
-  <ul class="pagination justify-content-center mt-3" id="pagination"></ul>
-</nav> -->
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Tổng Khoa</h6>
+                <h3 id="totalFaculties" class="fw-bold text-dark">0</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= FILTER ================= -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <div class="row g-2">
+
+            <div class="col-md-3">
+                <input type="text" id="searchInput"
+                       class="form-control"
+                       placeholder="Tìm theo mã hoặc tên">
+            </div>
+
+            <div class="col-md-2">
+                <select id="facultyFilter" class="form-select">
+                    <option value="">-- Tất cả khoa --</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <select id="degreeFilter" class="form-select">
+                <option value="">-- Học vị --</option>
+                    
+                </select>
+            </div> 
+
+            <div class="col-md-2">
+                <select id="sortOrder" class="form-select">
+                    <option value="DESC">Giảm dần</option>
+                    <option value="ASC">Tăng dần</option>
+                </select>
+            </div>
+
+            <div class="col-md-3 d-flex gap-2">
+                <button class="btn btn-primary w-100" onclick="loadLecturers(1)">
+                    Tìm
+                </button>
+                <button class="btn btn-secondary w-100" onclick="resetFilter()">
+                    Reset
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ================= TABLE ================= -->
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <div id="alertArea"></div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã GV</th>
+                        <th>Họ Tên</th>
+                        <th>Email</th>
+                        <th>Khoa</th>
+                        <th>Học vị</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="lecturersBody"></tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-end">
+            <ul class="pagination pagination-sm" id="pagination"></ul>
+        </div>
+
+    </div>
+</div>
 
 </div>
 
-<!-- 
+<!-- ================= CREATE MODAL ================= -->
+<!-- <div class="modal fade" id="createModal">
+<div class="modal-dialog modal-lg">
+<div class="modal-content">
+<div class="modal-header">
+    <h5>Thêm Giảng viên</h5>
+    <button class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<form id="createForm">
+<div class="modal-body">
+<div class="row">
+
+<div class="col-md-6">
+    <div class="mb-3">
+        <label>Mã giảng viên</label>
+        <input name="lecturer_code" id="create_code" class="form-control" readonly>
+    </div>
+    <div class="mb-3">
+        <label>Họ</label>
+        <input name="first_name" id="create_first" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label>Tên</label>
+        <input name="last_name" id="create_last" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label>Email</label>
+        <input name="email" id="create_email" type="email" class="form-control" required>
+    </div>
+</div>
+
+    <div class="col-md-6">
+    <div class="mb-3">
+        <label>Học vị</label>
+        <select name="degree" id="create_degree" class="form-select" required>
+            <option value="">-- Chọn Học vị --</option>
+           
+        </select>
+    </div>
+    <div class="mb-3">
+        <label>Khoa</label>
+        <select name="faculty_id" id="create_faculty" class="form-select" required>
+            <option value="">-- Chọn khoa --</option>
+        </select>
+    </div>
+</div>
+
+</div>
+</div>
+
+    <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+    <button type="submit" class="btn btn-primary">Tạo</button>
+</div>
+</form>
+
+</div>
+</div>
+</div> -->
+
+<!-- ================= CREATE MODAL ================= -->
+<div class="modal fade" id="createModal">
+<div class="modal-dialog modal-lg">
+<div class="modal-content">
+
+<div class="modal-header">
+    <h5 class="fw-bold">Thêm Giảng viên mới</h5>
+    <button class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<form id="createForm">
+<div class="modal-body">
+
+    <div class="row">
+
+        <!-- ===== THÔNG TIN CÁ NHÂN ===== -->
+        <div class="col-md-6 border-end">
+            <h6 class="text-primary fw-bold mb-3">
+                <i class="bi bi-person"></i> Thông tin cá nhân
+            </h6>
+
+            <div class="mb-3">
+                <label>Mã giảng viên</label>
+                <input name="lecturer_code"
+                       id="create_code"
+                       class="form-control"
+                       readonly>
+            </div>
+
+            <div class="mb-3">
+                <label>Họ</label>
+                <input name="first_name"
+                       class="form-control"
+                       required>
+            </div>
+
+            <div class="mb-3">
+                <label>Tên</label>
+                <input name="last_name"
+                       class="form-control"
+                       required>
+            </div>
+
+            <div class="mb-3">
+                <label>Email</label>
+                <input name="email"
+                       type="email"
+                       class="form-control"
+                       required>
+            </div>
+
+            <div class="mb-3">
+                <label>Số điện thoại</label>
+                <input name="phone"
+                       class="form-control">
+            </div>
+        </div>
+
+        <!-- ===== THÔNG TIN CHUYÊN MÔN ===== -->
+        <div class="col-md-6">
+            <h6 class="text-success fw-bold mb-3">
+                <i class="bi bi-mortarboard"></i> Thông tin chuyên môn
+            </h6>
+
+            <div class="mb-3">
+                <label>Học vị</label>
+                <select name="degree"
+                        id="create_degree"
+                        class="form-select"
+                        required>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label>Khoa</label>
+                <select name="faculty_id"
+                        id="create_faculty"
+                        class="form-select"
+                        required>
+                </select>
+            </div>
+
+            <div class="alert alert-info mt-4">
+                <strong>Lưu ý:</strong><br>
+                Tài khoản đăng nhập sẽ được tạo tự động.<br>
+                Username = Mã GV<br>
+                Password mặc định = 123456
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="modal-footer">
+    <button type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal">Đóng</button>
+
+    <button type="submit"
+            class="btn btn-primary">Tạo giảng viên</button>
+</div>
+
+</form>
+</div>
+</div>
+</div>
+
+
+<!-- ================= SCRIPT ================= -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
 
-const apiUrl = '/web_QLSV/admin/api/router.php?module=lecturers';
+const apiUrl = "<?= BASE_URL ?>/admin/api/router.php";
 
-let lecturers = [], faculties = [], subjects = [], classes = [];
-let searchTimeout;
-
+let faculties = [];
+let degrees = <?= json_encode($degrees) ?> || [];
+let lecturers = [];
+let currentPage = 1;
+let totalPages = 1;
+// ================= ALERT =================
 function showAlert(message, type='success'){
-    const area = document.getElementById('alertArea');
-    area.innerHTML = `<div class="alert alert-${type} alert-dismissible" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    document.getElementById('alertArea').innerHTML =
+        `<div class="alert alert-${type} alert-dismissible fade show">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
 }
 
- let currentPage = 1;
-    let totalPages = 1;
+// ================= FETCH FACULTIES =================
 
-/* ================= INIT ================= */
-    loadFaculties();
-    loadSubjects();
+async function fetchFaculties(){
+    const res = await fetch(`${apiUrl}?resource=faculties&action=index&page=1&limit=500`);
+    const j = await res.json();
 
+    if(j.success){
+        faculties = j.data;
+        document.getElementById("totalFaculties").innerText = faculties.length;
+        populateFacultySelects();
+    }
+}
 
-/* ================= LOAD SUBJECT ================= */
-function loadSubjects(page = 1) {
+function populateFacultySelects(){
+    const selects = document.querySelectorAll('[name="faculty_id"], #facultyFilter');
 
-    currentPage = page;
+    selects.forEach(sel=>{
+        const val = sel.value;
+        sel.innerHTML = '<option value="">-- Chọn khoa --</option>';
 
-    document.getElementById('loading').style.display = 'block';
-
-
-    const faculty = document.getElementById('facultyFilter').value;
-    const search = document.getElementById('searchInput').value;
-    const params = new URLSearchParams({
-    action: 'index',
-    page: page,
-    search: search,
-    faculty_id: faculty,
-    sort: sort,
-    order: order
-    });
-
-    // fetch(`${API}&action=index&page=${page}&search=${search}&faculty_id=${faculty}&sort=${sort}&order=${order}`)
-        fetch(`${API}&${params.toString()}`)
-        .then(r=>r.json())
-        .then(res=>{
-
-            document.getElementById('loading').style.display = 'none';
-
-            if(!res.success){
-                alert(res.message);
-                return;
-            }
-
-            renderTable(res.data);
-            // renderPagination(res.pagination);
-            if (res.pagination && res.pagination.pages > 1) {
-                renderPagination(
-                    Number(res.pagination.page),
-                    Number(res.pagination.pages)
-                );
-            } else {
-                document.getElementById('pagination').innerHTML = '';
-            }
-
+        faculties.forEach(f=>{
+            sel.innerHTML += `<option value="${f.faculty_id}">${f.faculty_name}</option>`;
         });
-}
 
-/* ================= PAGINATION ================= */
-
-function renderPagination(current, total) {
-
-    const p = document.getElementById('pagination');
-    if (!p) return;
-
-    p.innerHTML = '';
-    if (total <= 1) return;
-
-    const range = 2;
-    let start = Math.max(1, current - range);
-    let end   = Math.min(total, current + range);
-
-    let html = '<ul class="pagination">';
-
-    if (current > 1) {
-        html += `
-            <li class="page-item">
-                <a class="page-link" href="#" onclick="loadSubjects(1);return false;">«</a>
-            </li>`;
-    }
-
-    html += `
-        <li class="page-item ${current === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="loadSubjects(${current - 1});return false;">‹</a>
-        </li>`;
-
-    if (start > 1) {
-        html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
-    }
-
-    for (let i = start; i <= end; i++) {
-        html += `
-            <li class="page-item ${i === current ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="loadSubjects(${i});return false;">${i}</a>
-            </li>`;
-    }
-
-    if (end < total) {
-        html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
-    }
-
-    html += `
-        <li class="page-item ${current === total ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="loadSubjects(${current + 1});return false;">›</a>
-        </li>`;
-
-    if (current < total) {
-        html += `
-            <li class="page-item">
-                <a class="page-link" href="#" onclick="loadSubjects(${total});return false;">»</a>
-            </li>`;
-    }
-
-    html += '</ul>';
-
-    p.innerHTML = html;
-}
-
-
-
-function renderLecturers(){
-    const tbody = document.getElementById('lecturersBody');
-    tbody.innerHTML = '';
-
-    document.getElementById('totalLecturers').innerText = lecturers.length;
-
-    lecturers.forEach((l, index) => {
-        const tr = document.createElement('tr');
-
-        tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td><span class="badge bg-dark">${escapeHtml(l.lecturer_code)}</span></td>
-            <td class="fw-semibold">
-                ${escapeHtml(l.first_name + ' ' + l.last_name)}
-            </td>
-            <td>${escapeHtml(l.email)}</td>
-            <td>
-                <span class="badge bg-info text-dark">
-                    ${escapeHtml(l.faculty_name || '')}
-                </span>
-            </td>
-            <td>
-                <span class="badge bg-success">
-                    ${escapeHtml(l.degree || '')}
-                </span>
-            </td>
-            <td class="text-center">
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary"
-                            onclick="openEdit(${l.lecturer_id})">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-
-                    <button class="btn btn-outline-success"
-                            onclick="openAssignSubjects(${l.lecturer_id})">
-                        <i class="bi bi-book"></i>
-                    </button>
-
-                    <button class="btn btn-outline-warning"
-                            onclick="openAssignClasses(${l.lecturer_id})">
-                        <i class="bi bi-diagram-3"></i>
-                    </button>
-
-                    <button class="btn btn-outline-danger"
-                            onclick="deleteLecturer(${l.lecturer_id})">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
-
-        tbody.appendChild(tr);
+        sel.value = val;
     });
 }
 
+// ================= DEGREES (từ PHP enum hoặc API dữ liệu)
+function populateDegreeSelects(){
+    const selects = document.querySelectorAll('#degreeFilter, #create_degree, #edit_degree');
 
-function escapeHtml(str){ return String(str).replace(/[&<>\"]/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[s]); }
+    selects.forEach(sel=>{
+        const val = sel.value;
+        sel.innerHTML = '<option value="">-- Chọn học vị --</option>';
 
-async function openEdit(id){
+        degrees.forEach(d=>{
+            if (typeof d === 'object' && d !== null) {
+                // object form from API: { degree_id, degree_name }
+                sel.innerHTML += `<option value="${d.degree_id}">${d.degree_name}</option>`;
+            } else {
+                // enum string form from PHP: 'Master', 'PhD', ...
+                const v = String(d);
+                sel.innerHTML += `<option value="${v}">${v}</option>`;
+            }
+        });
+
+        sel.value = val;
+    });
+}
+
+// ================= NEXT CODE =================
+async function fetchNextCode(){
     try{
-        const res = await fetch(`${apiUrl}?module=lecturers&action=show&id=${id}`, { credentials: 'same-origin' });
-        const text = await res.text();
-        try {
-            const j = JSON.parse(text);
-            if (!j.success) { showAlert(j.message||'Không tìm thấy','danger'); return; }
+        const res = await fetch(`${apiUrl}?resource=lecturers&action=nextCode`);
+        const j = await res.json();
+        if(j.success && j.data && j.data.next_code){
+            const el = document.getElementById('create_code');
+            if(el) el.value = j.data.next_code;
+        }
+    }catch(e){
+        console.error('Failed to fetch next code', e);
+    }
+}
+
+// ================= EDIT MODAL =================
+function openEditModal(id){
+    fetch(`${apiUrl}?resource=lecturers&action=show&id=${id}`)
+    .then(r=>r.json())
+    .then(j=>{
+        if(j.success){
             const l = j.data;
             document.getElementById('edit_id').value = l.lecturer_id;
             document.getElementById('edit_code').value = l.lecturer_code;
@@ -439,800 +425,240 @@ async function openEdit(id){
             document.getElementById('edit_last').value = l.last_name;
             document.getElementById('edit_email').value = l.email;
             document.getElementById('edit_phone').value = l.phone || '';
-            document.getElementById('edit_degree').value = l.degree;
-            document.getElementById('edit_faculty').value = l.faculty_id;
-            const modal = new bootstrap.Modal(document.getElementById('editModal'));
-            modal.show();
-        } catch (e) { console.warn('openEdit: invalid JSON'); }
-    }catch(e){ console.error(e); showAlert('Lỗi mạng','danger'); }
-}
-
-document.getElementById('createForm').addEventListener('submit', async function(e){
-    e.preventDefault();
-    const params = new URLSearchParams();
-    params.append('module','lecturers');
-    params.append('action','store');
-    params.append('lecturer_code', document.getElementById('create_code').value);
-    params.append('first_name', document.getElementById('create_first').value);
-    params.append('last_name', document.getElementById('create_last').value);
-    params.append('email', document.getElementById('create_email').value);
-    params.append('phone', document.getElementById('create_phone').value);
-    params.append('degree', document.getElementById('create_degree').value);
-    params.append('faculty_id', document.getElementById('create_faculty').value);
-    try{
-        const res = await fetch(apiUrl, { method: 'POST', body: params, credentials: 'same-origin' });
-        const text = await res.text();
-        try {
-            const j = JSON.parse(text);
-            if (j.success) { showAlert('Tạo thành công'); fetchLecturers(); document.getElementById('createForm').reset();
-                bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
-            } else showAlert(j.message || 'Lỗi', 'danger');
-        } catch (e) { console.warn('createForm response invalid JSON'); }
-    }catch(e){ console.error(e); showAlert('Lỗi mạng','danger'); }
-});
-
-const editForm = document.getElementById('editForm');
-if (editForm) {
-    editForm.addEventListener('submit', async function(e){
-// document.getElementById('editForm').addEventListener('submit', async function(e){
-    e.preventDefault();
-    const id = document.getElementById('edit_id').value;
-    const params = new URLSearchParams();
-    params.append('module','lecturers');
-    params.append('action','update');
-    params.append('id', id);
-    params.append('lecturer_code', document.getElementById('edit_code').value);
-    params.append('first_name', document.getElementById('edit_first').value);
-    params.append('last_name', document.getElementById('edit_last').value);
-    params.append('email', document.getElementById('edit_email').value);
-    params.append('phone', document.getElementById('edit_phone').value);
-    params.append('degree', document.getElementById('edit_degree').value);
-    params.append('faculty_id', document.getElementById('edit_faculty').value);
-    try{
-        const res = await fetch(apiUrl, { method: 'POST', body: params, credentials: 'same-origin' });
-        const text = await res.text();
-        try {
-            const j = JSON.parse(text);
-            if (j.success) { showAlert('Cập nhật thành công'); fetchLecturers();
-                bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
-            } else showAlert(j.message || 'Lỗi', 'danger');
-        } catch (e) { console.warn('editForm response invalid JSON'); }
-    }catch(e){ console.error(e); showAlert('Lỗi mạng','danger'); }
-  });
-}
-
-async function deleteLecturer(id){
-    if(!confirm('Xóa giảng viên này?')) return;
-    const params = new URLSearchParams();
-    params.append('module','lecturers');
-    params.append('action','delete');
-    params.append('id', id);
-    try{
-        const res = await fetch(apiUrl, { method: 'POST', body: params, credentials: 'same-origin' });
-        const text = await res.text();
-        try {
-            const j = JSON.parse(text);
-            if (j.success) { showAlert('Đã xóa'); fetchLecturers(); }
-            else showAlert(j.message || 'Lỗi', 'danger');
-        } catch (e) { console.warn('deleteLecturer response invalid JSON'); }
-    }catch(e){ console.error(e); showAlert('Lỗi mạng','danger'); }
-}
-
-document.getElementById('searchInput').addEventListener('input', function(e){
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        fetchLecturers(e.target.value);
-    }, 300);
-});
-
-async function fetchSubjects(){
-    try{
-        const res = await fetch(`${apiUrl}?module=subjects&action=index&page=1&limit=500`, { credentials: 'same-origin' });
-        if (!res.ok) return;
-        const text = await res.text();
-        try {
-            const j = JSON.parse(text);
-            if (j && j.success) subjects = j.data;
-        } catch (e) { console.warn('fetchSubjects: invalid JSON'); }
-    }catch(e){ console.error(e); }
-}
-
-async function fetchClasses(){
-    try{
-        const res = await fetch(`${apiUrl}?module=classes&action=index&page=1&limit=500`, { credentials: 'same-origin' });
-        if (!res.ok) return;
-        const text = await res.text();
-        try {
-            const j = JSON.parse(text);
-            if (j && j.success) classes = j.data;
-        } catch (e) { console.warn('fetchClasses: invalid JSON'); }
-    }catch(e){ console.error(e); }
-}
-
-async function openAssignSubjects(lecturerId){
-    if (!subjects.length) await fetchSubjects();
-    
-    document.getElementById('assignSubjects_lecturer_id').value = lecturerId;
-    const container = document.getElementById('subjectsCheckboxes');
-    container.innerHTML = '';
-    
-    subjects.forEach(s => {
-        const div = document.createElement('div');
-        div.className = 'form-check';
-        div.innerHTML = `
-            <input class="form-check-input" type="checkbox" value="${s.subject_id}" id="subject_${s.subject_id}">
-            <label class="form-check-label" for="subject_${s.subject_id}">
-                ${escapeHtml(s.subject_code)} - ${escapeHtml(s.subject_name)}
-            </label>
-        `;
-        container.appendChild(div);
-    });
-    
-    const modal = new bootstrap.Modal(document.getElementById('assignSubjectsModal'));
-    modal.show();
-}
-
-async function openAssignClasses(lecturerId){
-    if (!classes.length) await fetchClasses();
-    
-    document.getElementById('assignClasses_lecturer_id').value = lecturerId;
-    const container = document.getElementById('classesCheckboxes');
-    container.innerHTML = '';
-    
-    classes.forEach(c => {
-        const div = document.createElement('div');
-        div.className = 'form-check';
-        div.innerHTML = `
-            <input class="form-check-input" type="checkbox" value="${c.class_id}" id="class_${c.class_id}">
-            <label class="form-check-label" for="class_${c.class_id}">
-                ${escapeHtml(c.class_code)} - ${escapeHtml(c.subject_name || '')} (${escapeHtml(c.semester)}, ${escapeHtml(c.year)})
-            </label>
-        `;
-        container.appendChild(div);
-    });
-    
-    const modal = new bootstrap.Modal(document.getElementById('assignClassesModal'));
-    modal.show();
-}
-
-document.getElementById('assignSubjectsForm').addEventListener('submit', async function(e){
-    e.preventDefault();
-    const lecturerId = document.getElementById('assignSubjects_lecturer_id').value;
-    const selectedIds = Array.from(document.querySelectorAll('#subjectsCheckboxes input[type="checkbox"]:checked'))
-        .map(el => el.value);
-    
-    if (!selectedIds.length) {
-        showAlert('Vui lòng chọn ít nhất một môn học', 'warning');
-        return;
-    }
-    
-    const params = new URLSearchParams();
-    params.append('module', 'lecturers');
-    params.append('action', 'assignSubjects');
-    params.append('lecturer_id', lecturerId);
-    selectedIds.forEach(id => params.append('subject_ids[]', id));
-    
-    try{
-        const res = await fetch(apiUrl, { method: 'POST', body: params, credentials: 'same-origin' });
-        const text = await res.text();
-        try {
-            const j = JSON.parse(text);
-            if (j.success) {
-                showAlert('Gán môn học thành công');
-                bootstrap.Modal.getInstance(document.getElementById('assignSubjectsModal')).hide();
-            } else showAlert(j.message || 'Lỗi', 'danger');
-        } catch (e) { console.warn('assignSubjects response invalid JSON'); }
-    }catch(e){ console.error(e); showAlert('Lỗi mạng','danger'); }
-});
-
-document.getElementById('assignClassesForm').addEventListener('submit', async function(e){
-    e.preventDefault();
-    const lecturerId = document.getElementById('assignClasses_lecturer_id').value;
-    const selectedIds = Array.from(document.querySelectorAll('#classesCheckboxes input[type="checkbox"]:checked'))
-        .map(el => el.value);
-    
-    if (!selectedIds.length) {
-        showAlert('Vui lòng chọn ít nhất một lớp', 'warning');
-        return;
-    }
-    
-    const params = new URLSearchParams();
-    params.append('module', 'lecturers');
-    params.append('action', 'assignClasses');
-    params.append('lecturer_id', lecturerId);
-    selectedIds.forEach(id => params.append('class_ids[]', id));
-    
-    try{
-        const res = await fetch(apiUrl, { method: 'POST', body: params, credentials: 'same-origin' });
-        const text = await res.text();
-        try {
-            const j = JSON.parse(text);
-            if (j.success) {
-                showAlert('Gán lớp thành công');
-                bootstrap.Modal.getInstance(document.getElementById('assignClassesModal')).hide();
-            } else showAlert(j.message || 'Lỗi', 'danger');
-        } catch (e) { console.warn('assignClasses response invalid JSON'); }
-    }catch(e){ console.error(e); showAlert('Lỗi mạng','danger'); }
-});
-
-function renderPagination(){
-    const container = document.getElementById('pagination');
-    container.innerHTML = '';
-
-    for(let i = 1; i <= totalPages; i++){
-        const li = document.createElement('li');
-        li.className = 'page-item ' + (i === currentPage ? 'active' : '');
-        li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
-        li.onclick = (e) => {
-            e.preventDefault();
-            fetchLecturers(document.getElementById('searchInput').value, i);
-        };
-        container.appendChild(li);
-    }
-}
-
-/* ================= LOAD FACULTY ================= */
-
-async function loadFaculties() {
-
-    const res = await fetch('/web_QLSV/admin/api/router.php?module=faculties&action=index&page=1&limit=500');
-    const json = await res.json();
-
-    if (!json.success) return;
-
-    const faculties = json.data || [];
-
-    let options = '<option value="">-- Tất cả khoa --</option>';
-
-    faculties.forEach(f => {
-        options += `<option value="${f.faculty_id}">${f.faculty_name}</option>`;
-    });
-
-    document.getElementById('facultyFilter').innerHTML = options;
-
-    // Modal select
-    document.getElementById('faculty_id').innerHTML =
-        '<option value="">-- Chọn khoa --</option>' +
-        faculties.map(f =>
-            `<option value="${f.faculty_id}">${f.faculty_name}</option>`
-        ).join('');
-}
-
-
-// Init
-fetchFaculties().then(() => {
-    populateFacultySelects();
-    fetchLecturers();
-    fetchSubjects();
-    fetchClasses();
-});
-
-});
-
-</script> -->
-<!-- 
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-
-    /* ================================
-        CONFIG
-    ================================== */
-    const API = '/web_QLSV/admin/api/router.php?module=lecturers';
-    const FACULTY_API = '/web_QLSV/admin/api/router.php?module=faculties';
-
-    let lecturers = [];
-    let faculties = [];
-    let currentPage = 1;
-    let totalPages = 1;
-    let searchTimeout = null;
-
-
-    /* ================================
-        LOAD FACULTIES
-    ================================== */
-    async function loadFaculties(){
-
-        const res = await fetch(`${FACULTY_API}&action=index&page=1&limit=500`);
-        const json = await res.json();
-
-        if(!json.success){
-            alert(json.message);
-            return;
+            document.getElementById('edit_degree').value = l.degree || '';
+            document.getElementById('edit_faculty').value = l.faculty_id || '';
+            new bootstrap.Modal(document.getElementById('editModal')).show();
+        } else {
+            showAlert(j.message,'danger');
         }
-
-        faculties = json.data;
-
-        // đổ vào filter
-        const filter = document.getElementById('facultyFilter');
-        filter.innerHTML = `<option value="">-- Tất cả khoa --</option>`;
-
-        faculties.forEach(f=>{
-            filter.innerHTML += `<option value="${f.faculty_id}">${f.faculty_name}</option>`;
-        });
-
-        // đổ vào create form
-        const createSel = document.getElementById('create_faculty');
-        createSel.innerHTML = '';
-
-        faculties.forEach(f=>{
-            createSel.innerHTML += `<option value="${f.faculty_id}">${f.faculty_name}</option>`;
-        });
-    }
-
-
-    /* ================================
-        LOAD LECTURERS
-    ================================== */
-    async function loadLecturers(page = 1){
-
-        currentPage = page;
-
-        const search  = document.getElementById('searchInput').value;
-        const faculty = document.getElementById('facultyFilter').value;
-
-        const params = new URLSearchParams({
-            action: 'index',
-            page: page,
-            limit: 10,
-            search: search,
-            faculty_id: faculty
-        });
-
-        const res = await fetch(`${API}&${params.toString()}`);
-        const json = await res.json();
-
-        if(!json.success){
-            alert(json.message);
-            return;
-        }
-
-        lecturers  = json.data;
-        totalPages = json.pagination.pages;
-
-        document.getElementById('totalLecturers').innerText =
-            json.pagination.total_records ?? lecturers.length;
-
-        renderLecturers();
-        renderPagination();
-    }
-
-
-    /* ================================
-        RENDER TABLE
-    ================================== */
-   function renderLecturers(){
-
-    const tbody = document.getElementById('lecturersBody');
-    tbody.innerHTML = '';
-
-    if(lecturers.length === 0){
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center text-muted">
-                    Không có dữ liệu
-                </td>
-            </tr>`;
-        return;
-    }
-
-    lecturers.forEach((l,index)=>{
-
-        tbody.innerHTML += `
-            <tr>
-                <td>${index + 1}</td>
-                <td><span class="badge bg-dark">${l.lecturer_code}</span></td>
-                <td class="fw-semibold">
-                    ${l.first_name} ${l.last_name}
-                </td>
-                <td>${l.email}</td>
-                <td>
-                    <span class="badge bg-info text-dark">
-                        ${l.faculty_name ?? ''}
-                    </span>
-                </td>
-                <td>
-                    <span class="badge bg-success">
-                        ${l.degree ?? ''}
-                    </span>
-                </td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-danger"
-                        onclick="deleteLecturer(${l.lecturer_id})">
-                        Xóa
-                    </button>
-                </td>
-            </tr>`;
     });
 }
 
 
+// ================= LOAD LECTURERS =================
 
-    /* ================================
-        PAGINATION
-    ================================== */
-    function renderPagination(){
-
-        const p = document.getElementById('pagination');
-        p.innerHTML = '';
-
-        if(totalPages <= 1) return;
-
-        for(let i=1;i<=totalPages;i++){
-            p.innerHTML += `
-                <li class="page-item ${i===currentPage?'active':''}">
-                    <a class="page-link" href="#"
-                        onclick="loadLecturers(${i});return false;">
-                        ${i}
-                    </a>
-                </li>`;
-        }
-    }
-
-
-    /* ================================
-        CREATE
-    ================================== */
-    document.getElementById('createForm')
-        .addEventListener('submit', async function(e){
-
-        e.preventDefault();
-
-        const formData = new FormData(this);
-        formData.append('action','store');
-
-        const res = await fetch(API,{
-            method:'POST',
-            body: formData
-        });
-
-        const json = await res.json();
-
-        if(!json.success){
-            alert(json.message);
-            return;
-        }
-
-        bootstrap.Modal.getInstance(
-            document.getElementById('createModal')
-        ).hide();
-
-        this.reset();
-        loadLecturers(currentPage);
-    });
-
-
-    /* ================================
-        DELETE
-    ================================== */
-    window.deleteLecturer = async function(id){
-
-        if(!confirm('Bạn chắc chắn muốn xóa?')) return;
-
-        const formData = new FormData();
-        formData.append('action','delete');
-        formData.append('id',id);
-
-        const res = await fetch(API,{
-            method:'POST',
-            body: formData
-        });
-
-        const json = await res.json();
-
-        if(!json.success){
-            alert(json.message);
-            return;
-        }
-
-        loadLecturers(currentPage);
-    };
-
-
-    /* ================================
-        EDIT (CƠ BẢN)
-    ================================== */
-    window.editLecturer = function(id){
-
-        const l = lecturers.find(x=>x.lecturer_id==id);
-        if(!l) return;
-
-        document.getElementById('create_full_name').value = l.full_name;
-        document.getElementById('create_email').value = l.email;
-        document.getElementById('create_phone').value = l.phone ?? '';
-        document.getElementById('create_faculty').value = l.faculty_id;
-
-        new bootstrap.Modal(
-            document.getElementById('createModal')
-        ).show();
-    };
-
-
-    /* ================================
-        EVENTS
-    ================================== */
-
-    // Search debounce
-    document.getElementById('searchInput')
-        .addEventListener('input', function(){
-
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(()=>{
-            loadLecturers(1);
-        },300);
-    });
-
-    // Filter khoa
-    document.getElementById('facultyFilter')
-        .addEventListener('change', ()=> loadLecturers(1));
-
-
-    /* ================================
-        INIT
-    ================================== */
-    (async function(){
-        await loadFaculties();
-        await loadLecturers();
-    })();
-
-});
-
-</script> -->
-
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-
-/* ===============================
-   CONFIG
-================================ */
-const API = '/web_QLSV/admin/api/router.php?module=lecturers';
-const FACULTY_API = '/web_QLSV/admin/api/router.php?module=faculties';
-
-let lecturers = [];
-let faculties = [];
-let currentPage = 1;
-let totalPages = 1;
-let searchTimeout = null;
-
-
-/* ===============================
-   LOAD FACULTIES
-================================ */
-async function loadFaculties(){
-
-    try{
-        const res = await fetch(`${FACULTY_API}&action=index&page=1&limit=500`);
-        const json = await res.json();
-
-        if(!json.success) return;
-
-        faculties = json.data;
-
-        // FILTER SELECT
-        const filter = document.getElementById('facultyFilter');
-        filter.innerHTML = `<option value="">-- Tất cả khoa --</option>`;
-        faculties.forEach(f=>{
-            filter.innerHTML += `<option value="${f.faculty_id}">${f.faculty_name}</option>`;
-        });
-
-        // CREATE SELECT
-        const createSel = document.getElementById('create_faculty');
-        createSel.innerHTML = `<option value="">-- Chọn khoa --</option>`;
-        faculties.forEach(f=>{
-            createSel.innerHTML += `<option value="${f.faculty_id}">${f.faculty_name}</option>`;
-        });
-
-    }catch(err){
-        console.error('Load faculties error:',err);
-    }
-}
-
-
-/* ===============================
-   LOAD LECTURERS
-================================ */
-async function loadLecturers(page = 1){
+async function loadLecturers(page=1){
 
     currentPage = page;
 
-    const search  = document.getElementById('searchInput').value;
-    const faculty = document.getElementById('facultyFilter').value;
+    const search = document.getElementById("searchInput").value;
+    const faculty = document.getElementById("facultyFilter").value;
+    const degree = document.getElementById("degreeFilter").value;
+    const sort = document.getElementById("sortOrder").value;
 
-    const params = new URLSearchParams({
-        action: 'index',
-        page: page,
-        limit: 10,
-        search: search,
-        faculty_id: faculty
-    });
+    let url = `${apiUrl}?resource=lecturers&action=index&page=${page}&limit=10&sort=${sort}`;
 
-    try{
-        const res = await fetch(`${API}&${params.toString()}`);
-        const json = await res.json();
+    if(search) url += `&search=${encodeURIComponent(search)}`;
+    if(faculty) url += `&faculty_id=${faculty}`;
+    // if(degree) url += `&degree_id=${degree}`;
+    if(degree) url += `&degree=${degree}`;
 
-        if(!json.success){
-            alert(json.message);
-            return;
-        }
 
-        lecturers  = json.data;
-        totalPages = json.pagination.pages;
+    const res = await fetch(url);
+    const j = await res.json();
 
-        document.getElementById('totalLecturers').innerText =
-            json.pagination.total_records ?? lecturers.length;
+   if(j.success){
+    lecturers = j.data;
+    totalPages = parseInt(j.pagination.pages);
+    currentPage = parseInt(j.pagination.page);
 
-        renderLecturers();
-        renderPagination();
+    document.getElementById("totalLecturers").innerText = j.pagination.total;
 
-    }catch(err){
-        console.error('Load lecturers error:',err);
+    renderLecturers();
+    renderPagination();
+}
+    else {
+        showAlert(j.message,'danger');
     }
 }
 
 
-/* ===============================
-   RENDER TABLE
-================================ */
+// ================= RENDER =================
+
+
 function renderLecturers(){
+    const tbody = document.getElementById("lecturersBody");
+    tbody.innerHTML = "";
 
-    const tbody = document.getElementById('lecturersBody');
-    tbody.innerHTML = '';
-
-    if(lecturers.length === 0){
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center text-muted">
-                    Không có dữ liệu
-                </td>
-            </tr>`;
-        return;
-    }
-
-    lecturers.forEach((l,index)=>{
-
+    lecturers.forEach(l=>{
         tbody.innerHTML += `
-            <tr>
-                <td>${index + 1}</td>
-                <td><span class="badge bg-dark">${l.lecturer_code}</span></td>
-                <td class="fw-semibold">${l.first_name} ${l.last_name}</td>
-                <td>${l.email}</td>
-                <td>
-                    <span class="badge bg-info text-dark">
-                        ${l.faculty_name ?? ''}
-                    </span>
-                </td>
-                <td>
-                    <span class="badge bg-success">
-                        ${l.degree ?? ''}
-                    </span>
-                </td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-danger"
-                        onclick="deleteLecturer(${l.lecturer_id})">
-                        Xóa
-                    </button>
-                </td>
-            </tr>`;
+        <tr>
+            <td>${l.lecturer_code}</td>
+            <td>${l.first_name} ${l.last_name}</td>
+            <td>${l.email}</td>
+            <td>${l.faculty_name || ''}</td>
+            <td>${l.degree || ''}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-secondary me-1" onclick="openEditModal(${l.lecturer_id})">Sửa</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteLecturer(${l.lecturer_id})">Xóa</button>
+            </td>
+        </tr>`;
     });
 }
 
-
-/* ===============================
-   PAGINATION
-================================ */
+// ================= PAGINATION =================
 function renderPagination(){
-
-    const p = document.getElementById('pagination');
-    p.innerHTML = '';
-
-    if(totalPages <= 1) return;
+    const ul = document.getElementById("pagination");
+    ul.innerHTML = "";
 
     for(let i=1;i<=totalPages;i++){
-        p.innerHTML += `
-            <li class="page-item ${i===currentPage?'active':''}">
-                <a class="page-link" href="#"
-                    onclick="loadLecturers(${i});return false;">
-                    ${i}
-                </a>
-            </li>`;
+        ul.innerHTML += `
+        <li class="page-item ${i==currentPage?'active':''}">
+            <a class="page-link" href="#"
+               onclick="loadLecturers(${i})">${i}</a>
+        </li>`;
     }
 }
 
+// ================= RESET FILTER =================
+function resetFilter(){
+    document.getElementById("searchInput").value="";
+    document.getElementById("facultyFilter").value="";
+    document.getElementById("degreeFilter").value="";
+    loadLecturers(1);
+}
 
-/* ===============================
-   CREATE
-================================ */
-document.getElementById('createForm')
-.addEventListener('submit', async function(e){
-
+// ================= CREATE =================
+document.getElementById("createForm").addEventListener("submit", async function(e){
     e.preventDefault();
 
     const formData = new FormData(this);
-    formData.append('action','store');
+    formData.append("resource","lecturers");
+    formData.append("action","store");
 
-    try{
-        const res = await fetch(API,{
-            method:'POST',
-            body: formData
-        });
+    const res = await fetch(apiUrl,{
+        method:"POST",
+        body:formData
+    });
 
-        const json = await res.json();
+    const j = await res.json();
 
-        if(!json.success){
-            alert(json.message);
-            return;
-        }
-
-        bootstrap.Modal.getInstance(
-            document.getElementById('createModal')
-        ).hide();
-
+    if(j.success){
+        showAlert("Tạo thành công");
+        bootstrap.Modal.getInstance(document.getElementById("createModal")).hide();
         this.reset();
-        loadLecturers(1);
-
-    }catch(err){
-        console.error('Create error:',err);
-    }
-});
-
-
-/* ===============================
-   DELETE
-================================ */
-window.deleteLecturer = async function(id){
-
-    if(!confirm('Bạn chắc chắn muốn xóa?')) return;
-
-    const formData = new FormData();
-    formData.append('action','delete');
-    formData.append('id',id);
-
-    try{
-        const res = await fetch(API,{
-            method:'POST',
-            body: formData
-        });
-
-        const json = await res.json();
-
-        if(!json.success){
-            alert(json.message);
-            return;
-        }
-
         loadLecturers(currentPage);
-
-    }catch(err){
-        console.error('Delete error:',err);
+    } else {
+        showAlert(j.message,"danger");
     }
-};
-
-
-/* ===============================
-   SEARCH & FILTER EVENTS
-================================ */
-document.getElementById('searchInput')
-.addEventListener('input', function(){
-
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(()=>{
-        loadLecturers(1);
-    },300);
 });
 
-document.getElementById('facultyFilter')
-.addEventListener('change', ()=> loadLecturers(1));
+// ================= DELETE =================
+async function deleteLecturer(id){
+    if(!confirm("Xóa giảng viên này?")) return;
 
+    const params = new URLSearchParams();
+    params.append("resource","lecturers");
+    params.append("action","delete");
+    params.append("id",id);
 
-/* ===============================
-   INIT
-================================ */
-(async function(){
-    await loadFaculties();
-    await loadLecturers();
-})();
+    const res = await fetch(apiUrl,{
+        method:"POST",
+        body:params
+    });
 
+    const j = await res.json();
+
+    if(j.success){
+        showAlert("Đã xóa");
+        loadLecturers(currentPage);
+    } else {
+        showAlert(j.message,"danger");
+    }
+}
+
+// ================= INIT =================
+document.addEventListener("DOMContentLoaded", async function(){
+    await fetchFaculties();
+    populateDegreeSelects();
+    loadLecturers();
 });
+
 </script>
+
+<!-- ========== EDIT MODAL ========== -->
+<div class="modal fade" id="editModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>Chỉnh sửa Giảng viên</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editForm">
+                <div class="modal-body">
+                    <input type="hidden" id="edit_id" name="id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label>Mã giảng viên</label>
+                                <input name="lecturer_code" id="edit_code" class="form-control" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label>Họ</label>
+                                <input name="first_name" id="edit_first" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label>Tên</label>
+                                <input name="last_name" id="edit_last" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label>Email</label>
+                                <input name="email" id="edit_email" type="email" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label>Học vị</label>
+                                <select name="degree" id="edit_degree" class="form-select" required></select>
+                            </div>
+                            <div class="mb-3">
+                                <label>Khoa</label>
+                                <select name="faculty_id" id="edit_faculty" class="form-select" required></select>
+                            </div>
+                            <div class="mb-3">
+                                <label>Số điện thoại</label>
+                                <input name="phone" id="edit_phone" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>
+
+<script>
+// handle edit submit
+document.getElementById('editForm').addEventListener('submit', async function(e){
+        e.preventDefault();
+        const form = new FormData(this);
+        form.append('resource','lecturers');
+        form.append('action','update');
+
+        const res = await fetch(apiUrl, { method: 'POST', body: form });
+        const j = await res.json();
+        if(j.success){
+                showAlert('Cập nhật thành công');
+                bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                loadLecturers(currentPage);
+        } else {
+                showAlert(j.message,'danger');
+        }
+});
+
+// Khi mở modal thì tự động lấy mã mới
+document.getElementById('createModal')
+.addEventListener('show.bs.modal', function () {
+    fetchNextCode();
+});
+
+</script>
+fetchFaculties()

@@ -23,10 +23,10 @@ class SemesterController
         }
 
         // Kiểm tra học kỳ tồn tại
-        $semester = $this->db->fetch(
+        $semester = $this->db->query(
             "SELECT * FROM semesters WHERE semester_id = ?",
             [$semesterId]
-        );
+        )->fetch_assoc();
 
         if (!$semester) {
             return Response::error('Học kỳ không tồn tại');

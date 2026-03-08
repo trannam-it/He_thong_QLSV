@@ -5,36 +5,75 @@
  */
 class FacultyController extends BaseController
 {
-    public function index()
-    {
-        $this->auth->requirePermission('manage_faculties');
+    // public function index()
+    // {
+    //     $this->auth->requirePermission('manage_faculties');
         
-        $pagination = $this->getPagination();
-        $search = isset($_GET['search']) ? '%' . $_GET['search'] . '%' : null;
+    //     $pagination = $this->getPagination();
+    //     $search = isset($_GET['search']) ? '%' . $_GET['search'] . '%' : null;
         
-        $where = '';
-        $params = [];
+    //     $where = '';
+    //     $params = [];
         
-        if ($search) {
-            $where = '(faculty_code LIKE ? OR faculty_name LIKE ?)';
-            $params = [$search, $search];
-        }
+    //     if ($search) {
+    //         $where = '(faculty_code LIKE ? OR faculty_name LIKE ?)';
+    //         $params = [$search, $search];
+    //     }
         
-        $query = "SELECT * FROM faculties";
-        if ($where) $query .= " WHERE $where";
-        $query .= " ORDER BY faculty_id DESC LIMIT ? OFFSET ?";
+    //     $query = "SELECT * FROM faculties";
+    //     if ($where) $query .= " WHERE $where";
+    //     $query .= " ORDER BY faculty_id DESC LIMIT ? OFFSET ?";
         
-        $allParams = array_merge($params, [$pagination['limit'], $pagination['offset']]);
-        $faculties = $this->db->query($query, $allParams)->fetch_all(MYSQLI_ASSOC);
+    //     $allParams = array_merge($params, [$pagination['limit'], $pagination['offset']]);
+    //     $faculties = $this->db->query($query, $allParams)->fetch_all(MYSQLI_ASSOC);
         
-        $countQuery = "SELECT COUNT(*) as total FROM faculties";
-        if ($where) $countQuery .= " WHERE $where";
+    //     $countQuery = "SELECT COUNT(*) as total FROM faculties";
+    //     if ($where) $countQuery .= " WHERE $where";
         
-        $countParams = array_values($params);
-        $total = $this->db->query($countQuery, $countParams)->fetch_assoc()['total'];
+    //     $countParams = array_values($params);
+    //     $total = $this->db->query($countQuery, $countParams)->fetch_assoc()['total'];
 
-        return Response::paginate($faculties, $total, $pagination['page'], $pagination['limit']);
+    //     return Response::paginate($faculties, $total, $pagination['page'], $pagination['limit']);
+    // }
+
+  public function index()
+{
+    $this->auth->requirePermission('manage_faculties');
+    
+    $pagination = $this->getPagination();
+    $search = isset($_GET['search']) ? '%' . $_GET['search'] . '%' : null;
+
+    $where = '';
+    $params = [];
+
+    if ($search) {
+        $where = '(faculty_code LIKE ? OR faculty_name LIKE ?)';
+        $params = [$search, $search];
     }
+
+    // Lấy danh sách
+    $faculties = $this->db->getAll(
+        'faculties',
+        $pagination['limit'],
+        $pagination['offset'],
+        $where,
+        $params
+    );
+
+    // Đếm tổng
+    $total = $this->db->count(
+        'faculties',
+        $where,
+        $params
+    );
+
+    return Response::paginate(
+        $faculties,
+        $total,
+        $pagination['page'],
+        $pagination['limit']
+    );
+}
 
     public function show()
     {

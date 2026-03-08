@@ -155,34 +155,33 @@ class ClassController extends BaseController
         return Response::success($enrollments ?? []);
     }
 
-// Lấy danh sách lớp học phần cho nhập điểm
-public function listForGrades()
-{
-    $this->auth->requirePermission('enter_grades');
+    // Lấy danh sách lớp học phần cho nhập điểm
+    public function listForGrades()
+    {
+        $this->auth->requirePermission('manage_grades');
 
-    $semesterId = $_GET['semester_id'] ?? null;
+        $sql = "SELECT c.class_id,
+                       c.class_code AS class_name,
+                       sub.subject_name,
+                       c.semester,
+                       c.year
+                FROM classes c
+                JOIN subjects sub ON c.subject_id = sub.subject_id";
 
-    $sql = "SELECT c.class_id, c.class_name, sub.subject_name
-            FROM classes c
-            JOIN subjects sub ON c.subject_id = sub.subject_id";
+        $params = [];
 
-    $params = [];
+        // Nếu là giảng viên → chỉ hiển thị lớp mình dạy
+        if (in_array($this->auth->getRole(), ['teacher', 'lecturer'], true)) {
+            $sql .= " JOIN lecturers l ON c.lecturer_id = l.lecturer_id
+                      WHERE l.user_id = ?";
+            $params[] = $this->auth->getId();
+        }
 
-    // Nếu là giảng viên → chỉ lớp mình dạy
-    if ($this->auth->userRole() === 'lecturer') {
-        $sql .= " WHERE c.lecturer_id = ?";
-        $params[] = $this->auth->userId();
+        $sql .= " ORDER BY c.year DESC, c.class_code ASC";
+
+        return Response::success(
+            $this->db->query($sql, $params)->fetch_all(MYSQLI_ASSOC)
+        );
     }
-
-    if ($semesterId) {
-        $sql .= $params ? " AND" : " WHERE";
-        $sql .= " c.semester_id = ?";
-        $params[] = $semesterId;
-    }
-
-    return Response::success(
-        $this->db->query($sql, $params)->fetch_all(MYSQLI_ASSOC)
-    );
-}
 }
 ?>

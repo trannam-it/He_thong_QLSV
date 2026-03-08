@@ -1,20 +1,44 @@
 <?php
 require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../../includes/auth_check.php';
+authCheck(['super_admin', 'content_admin']);
 require_once __DIR__ . '/../layout/header.php';
 ?>
 
-<div class="main-content">
-    <div class="topbar">
-        <h2>Tiến độ Học tập Sinh viên</h2>
-        <a href="/web_QLSV/admin/views/students/index.php" class="btn btn-secondary">Quay lại</a>
+
+   <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1">
+                <i class="bi bi-graph-up-arrow text-primary"></i>
+                Tiến độ học tập sinh viên
+            </h4>
+            <small class="text-muted">
+                Theo dõi GPA và tín chỉ hoàn thành
+            </small>
+        </div>
+
+        <a href="<?= BASE_URL ?>/admin/views/students/index.php"
+           class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
     </div>
 
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <label class="form-label">Tìm Sinh viên</label>
-            <input type="text" id="searchInput" class="form-control" placeholder="MSSV, Họ tên...">
+    <!-- SEARCH -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-search"></i> Tìm sinh viên
+                </label>
+                <input type="text"
+                       id="searchInput"
+                       class="form-control"
+                       placeholder="Nhập MSSV hoặc họ tên...">
+            </div>
         </div>
     </div>
+
 
     <div class="card p-3">
         <div id="alertArea"></div>
@@ -83,7 +107,6 @@ require_once __DIR__ . '/../layout/header.php';
         </div>
     </div>
 
-</div>
 
 <script>
 const apiUrl = '/web_QLSV/admin/api/router.php';

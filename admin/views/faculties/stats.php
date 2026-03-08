@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../../includes/auth_check.php';
+authCheck(['super_admin', 'content_admin']);
 require_once __DIR__ . '/../layout/header.php';
 
 $pageTitle = 'Thống kê theo khoa';

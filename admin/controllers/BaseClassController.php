@@ -80,10 +80,10 @@ class BaseClassController extends BaseController
         $rules = [
             'base_class_code' => 'required|min:3|max:20',
             'base_class_name' => 'required|min:5|max:100',
-            'faculty_id' => 'required|numeric',
-            'lecturer_id' => 'required|numeric',
-            'start_year' => 'required|numeric|min:2000|max:2099',
-            'end_year' => 'required|numeric|min:2000|max:2099'
+            'faculty_id'      => 'required|numeric',
+            'lecturer_id'     => 'required|numeric',
+            'start_year'      => 'required|numeric|minval:2000|maxval:2099',
+            'end_year'        => 'required|numeric|minval:2000|maxval:2099'
         ];
 
         if (!$this->validator->validate($_POST, $rules)) {
@@ -143,10 +143,10 @@ class BaseClassController extends BaseController
         $rules = [
             'base_class_code' => 'required|min:3|max:20',
             'base_class_name' => 'required|min:5|max:100',
-            'faculty_id' => 'required|numeric',
-            'lecturer_id' => 'required|numeric',
-            'start_year' => 'required|numeric|min:2000|max:2099',
-            'end_year' => 'required|numeric|min:2000|max:2099'
+            'faculty_id'      => 'required|numeric',
+            'lecturer_id'     => 'required|numeric',
+            'start_year'      => 'required|numeric|minval:2000|maxval:2099',
+            'end_year'        => 'required|numeric|minval:2000|maxval:2099'
         ];
 
         if (!$this->validator->validate($_POST, $rules)) {

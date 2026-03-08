@@ -114,12 +114,10 @@ class StudentController extends BaseController
         $id = $_GET['id'] ?? null;
         if (!$id) return Response::error('Student ID required', 400);
 
-        $query = "SELECT s.*, f.faculty_name, m.major_code, m.major_name, 
-                         sc.class_code, sc.class_name
+        $query = "SELECT s.*, f.faculty_name, bc.base_class_name, bc.base_class_code
                   FROM students s
                   LEFT JOIN faculties f ON s.faculty_id = f.faculty_id
-                  LEFT JOIN majors m ON s.major_id = m.major_id
-                  LEFT JOIN student_classes sc ON s.student_class_id = sc.class_id
+                  LEFT JOIN base_classes bc ON s.base_class_id = bc.base_class_id
                   WHERE s.student_id = ?";
         $result = $this->db->query($query, [$id]);
         $student = $result ? $result->fetch_assoc() : null;
@@ -157,20 +155,15 @@ class StudentController extends BaseController
 
         $studentId = $this->db->insert('students', [
             'student_code' => $_POST['student_code'],
-            'first_name' => $_POST['first_name'],
-            'last_name' => $_POST['last_name'],
-            'email' => $_POST['email'],
-            'phone' => $_POST['phone'] ?? null,
-            'birth_date' => $_POST['birth_date'],
-            'gender' => $_POST['gender'],
-            'faculty_id' => $_POST['faculty_id'],
-            'address' => $_POST['address'] ?? null,
-            'avatar' => $_POST['avatar'] ?? null,
-            'major_id' => $_POST['major_id'] ?? null,
-            'student_class_id' => $_POST['student_class_id'] ?? null,
-            'cohort' => $_POST['cohort'] ?? null,
-            'training_system' => $_POST['training_system'] ?? 'Chính quy',
-            'status' => 'Studying'
+            'first_name'   => $_POST['first_name'],
+            'last_name'    => $_POST['last_name'],
+            'email'        => $_POST['email'],
+            'phone'        => $_POST['phone'] ?? null,
+            'birth_date'   => $_POST['birth_date'],
+            'gender'       => $_POST['gender'],
+            'faculty_id'   => $_POST['faculty_id'],
+            'base_class_id'=> $_POST['base_class_id'] ?? null,
+            'status'       => $_POST['status'] ?? 'Studying'
         ]);
 
         if ($studentId) {
@@ -208,21 +201,16 @@ class StudentController extends BaseController
         }
 
         $updateData = [
-            'student_code' => $_POST['student_code'],
-            'first_name' => $_POST['first_name'],
-            'last_name' => $_POST['last_name'],
-            'email' => $_POST['email'],
-            'phone' => $_POST['phone'] ?? null,
-            'birth_date' => $_POST['birth_date'],
-            'gender' => $_POST['gender'],
-            'faculty_id' => $_POST['faculty_id'],
-            'address' => $_POST['address'] ?? null,
-            'avatar' => $_POST['avatar'] ?? null,
-            'major_id' => $_POST['major_id'] ?? null,
-            'student_class_id' => $_POST['student_class_id'] ?? null,
-            'cohort' => $_POST['cohort'] ?? null,
-            'training_system' => $_POST['training_system'] ?? 'Chính quy',
-            'status' => $_POST['status'] ?? 'Studying'
+            'student_code'  => $_POST['student_code'],
+            'first_name'    => $_POST['first_name'],
+            'last_name'     => $_POST['last_name'],
+            'email'         => $_POST['email'],
+            'phone'         => $_POST['phone'] ?? null,
+            'birth_date'    => $_POST['birth_date'],
+            'gender'        => $_POST['gender'],
+            'faculty_id'    => $_POST['faculty_id'],
+            'base_class_id' => $_POST['base_class_id'] ?? null,
+            'status'        => $_POST['status'] ?? 'Studying'
         ];
 
         $this->db->update('students', $updateData, 'student_id = ?', [$id]);
@@ -306,11 +294,11 @@ class StudentController extends BaseController
         
         // Create user
         $userId = $this->db->insert('users', [
-            'username' => $username,
-            'password' => password_hash($password, PASSWORD_BCRYPT),
-            'email' => $student['email'],
-            'role' => 'student',
-            'is_active' => 1
+            'username'      => $username,
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+            'email'         => $student['email'],
+            'is_active'     => 1,
+            'failed_attempts' => 0
         ]);
         
         if ($userId) {
@@ -345,8 +333,12 @@ class StudentController extends BaseController
         }
         
         // Update user password
-        $this->db->update('users', 
-            ['password' => password_hash($newPassword, PASSWORD_BCRYPT)],
+        $this->db->update('users',
+            [
+                'password_hash'   => password_hash($newPassword, PASSWORD_DEFAULT),
+                'failed_attempts' => 0,
+                'locked_until'    => null,
+            ],
             'id = ?',
             [$student['user_id']]
         );
@@ -437,30 +429,36 @@ class StudentController extends BaseController
         $studentId = $_GET['student_id'] ?? $_POST['student_id'] ?? null;
         if (!$studentId) return Response::error('Student ID required', 400);
         
-        $query = "SELECT g.*, s.subject_code, s.subject_name, s.credit_hours, c.class_code, c.semester, c.year
-                  FROM grades g
-                  INNER JOIN classes c ON g.class_id = c.class_id
-                  INNER JOIN subjects s ON c.subject_id = s.subject_id
-                  WHERE g.student_id = ?
+        // grades → enrollments → classes → subjects  (correct join path)
+        $query = "SELECT g.grade_id, g.score, g.grade_letter,
+                         e.enrollment_id, e.status AS enroll_status,
+                         sub.subject_code, sub.subject_name, sub.credit_hours,
+                         c.class_code, c.semester, c.year
+                  FROM enrollments e
+                  LEFT JOIN grades   g   ON g.enrollment_id  = e.enrollment_id
+                  INNER JOIN classes  c   ON c.class_id        = e.class_id
+                  INNER JOIN subjects sub ON sub.subject_id    = c.subject_id
+                  WHERE e.student_id = ?
                   ORDER BY c.year DESC, c.semester DESC";
-        
+
         $grades = $this->db->query($query, [$studentId])->fetch_all(MYSQLI_ASSOC);
-        
-        // Calculate totals
+
+        // Calculate totals from actual score column
         $totalCredits = 0;
         $completedCredits = 0;
         $totalPoints = 0;
         $gradeCounts = 0;
-        
+
         foreach ($grades as $g) {
-            if ($g['final_grade']) {
-                $totalCredits += $g['credit_hours'] ?? 0;
-                $completedCredits += $g['credit_hours'] ?? 0;
-                $totalPoints += $g['final_grade'];
-                $gradeCounts++;
+            if ($g['score'] !== null) {
+                $credits = (int)($g['credit_hours'] ?? 0);
+                $totalCredits     += $credits;
+                $completedCredits += $credits;
+                $totalPoints      += (float)$g['score'] * $credits;   // weighted
+                $gradeCounts      += $credits;
             }
         }
-        
+
         $gpa = $gradeCounts > 0 ? round($totalPoints / $gradeCounts, 2) : 0;
         
         return Response::success([
@@ -478,20 +476,9 @@ class StudentController extends BaseController
      */
     public function getMajors()
     {
-        $facId = $_GET['faculty_id'] ?? $_POST['faculty_id'] ?? null;
-        
-        if ($facId) {
-            $majors = $this->db->query(
-                "SELECT * FROM majors WHERE faculty_id = ? ORDER BY major_name",
-                [$facId]
-            )->fetch_all(MYSQLI_ASSOC);
-        } else {
-            $majors = $this->db->query(
-                "SELECT * FROM majors ORDER BY faculty_id, major_name"
-            )->fetch_all(MYSQLI_ASSOC);
-        }
-        
-        return Response::success($majors ?? []);
+        // Note: 'majors' table does not exist in the current schema.
+        // Majors are represented by faculties. Return empty for now.
+        return Response::success([]);
     }
 
     /**
@@ -499,31 +486,9 @@ class StudentController extends BaseController
      */
     public function getStudentClasses()
     {
-        $facId = $_GET['faculty_id'] ?? $_POST['faculty_id'] ?? null;
-        $cohort = $_GET['cohort'] ?? $_POST['cohort'] ?? null;
-        
-        $where = [];
-        $params = [];
-        
-        if ($facId) {
-            $where[] = "faculty_id = ?";
-            $params[] = $facId;
-        }
-        
-        if ($cohort) {
-            $where[] = "cohort = ?";
-            $params[] = $cohort;
-        }
-        
-        $query = "SELECT * FROM student_classes";
-        if (!empty($where)) {
-            $query .= " WHERE " . implode(" AND ", $where);
-        }
-        $query .= " ORDER BY class_code";
-        
-        $classes = $this->db->query($query, $params)->fetch_all(MYSQLI_ASSOC);
-        
-        return Response::success($classes ?? []);
+        // Note: 'student_classes' (administrative class) table does not exist in the current schema.
+        // Return empty for now.
+        return Response::success([]);
     }
 
     /**
@@ -562,7 +527,5 @@ class StudentController extends BaseController
         return Response::success(['updated' => $updated], "$updated students assigned to class");
     }
 }
-$countQuery = "SELECT COUNT(*) as total FROM students";
-
 ?>
 
